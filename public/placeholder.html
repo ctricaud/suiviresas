@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">MAJ — Suivi Réservations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700&display=swap');
+
+  :root {
+    --bg:       #0a0a0a;
+    --bg2:      #111111;
+    --gold:     #c9a84c;
+    --gold-dim: rgba(201,168,76,0.10);
+    --white:    #f0ece0;
+    --grey:     #666;
+    --border:   rgba(201,168,76,0.22);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Nunito', Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    width: 100%;
+    padding: 20px 48px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .back-btn {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    padding: 8px 20px;
+    border-radius: 6px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .back-btn:hover { background: var(--gold-dim); border-color: var(--gold); }
+
+  .header-app {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    color: var(--grey);
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px;
+    text-align: center;
+  }
+
+  .page-title {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: clamp(3rem, 5vw, 5rem);
+    letter-spacing: 6px;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 16px;
+    id="title-text";
+  }
+
+  .en-construction {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 4px;
+    color: var(--grey);
+    border: 1px solid var(--border);
+    padding: 12px 32px;
+    border-radius: 8px;
+    margin-top: 24px;
+    display: inline-block;
+  }
+
+  footer {
+    padding: 18px 48px;
+    border-top: 1px solid rgba(201,168,76,0.1);
+  }
+  .footer-info {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    color: #2a2a2a;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="back-btn">← ACCUEIL</a>
+  <span class="header-app">SUIVI RÉSERVATIONS</span>
+</header>
+
+<main>
+  <h1 class="page-title" id="title-text">—</h1>
+  <div class="en-construction">⚙ PAGE EN CONSTRUCTION</div>
+</main>
+
+<footer>
+  <span class="footer-info">BLACK6 · PORT 3010</span>
+</footer>
+
+<script>
+  // Titre dynamique selon l'URL
+  const titres = {
+    '/maj-reservations': 'MAJ RÉSERVATIONS',
+    '/maj-listings':     'MAJ PROPRIÉTÉS',
+    '/maj-owners':       'MAJ PROPRIÉTAIRES',
+    '/suivi-prises':     'SUIVI PRISE DE RÉSERVATION',
+    '/listings':         'LISTE DES PROPRIÉTÉS',
+    '/reservations':     'LISTE DES RÉSERVATIONS',
+  };
+  const titre = titres[window.location.pathname] || 'PAGE';
+  document.getElementById('title-text').textContent = titre;
+  document.getElementById('page-title').textContent = titre + ' — Suivi Réservations';
+</script>
+
+</body>
+</html>

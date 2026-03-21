@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi Réservations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700&display=swap');
+
+  :root {
+    --bg:       #0a0a0a;
+    --bg2:      #111111;
+    --gold:     #c9a84c;
+    --gold-l:   #e8c96a;
+    --gold-dim: rgba(201,168,76,0.10);
+    --blue:     #4a90d9;
+    --blue-dim: rgba(74,144,217,0.10);
+    --white:    #f0ece0;
+    --grey:     #666;
+    --border:   rgba(201,168,76,0.25);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Nunito', Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    padding: 40px 40px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-eyebrow {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1rem;
+    letter-spacing: 6px;
+    color: var(--grey);
+    margin-bottom: 8px;
+  }
+
+  .header-title {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: clamp(2.5rem, 4vw, 4.5rem);
+    letter-spacing: 8px;
+    color: var(--gold);
+    white-space: nowrap;
+    line-height: 1;
+  }
+
+  .header-title span { color: var(--white); }
+
+  .header-line {
+    width: 80px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 16px auto 0;
+  }
+
+  /* ── MAIN : colonnes centrées, largeur maîtrisée ── */
+  main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 48px 32px 40px;
+    gap: 32px;
+  }
+
+  /* Chaque colonne a une largeur max fixe */
+  .col {
+    width: 420px;
+    flex-shrink: 0;
+  }
+
+  /* ── LABEL DE SECTION ── */
+  .section-label {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 3rem;
+    letter-spacing: 6px;
+    color: var(--gold);
+    margin-bottom: 20px;
+    line-height: 1;
+  }
+
+  /* ── GROUPE BOUTONS GESTION ── */
+  .btn-group {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg2);
+  }
+
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 18px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(201,168,76,0.1);
+    cursor: pointer;
+    transition: background 0.15s, padding-left 0.15s;
+    text-align: left;
+    gap: 14px;
+  }
+
+  .nav-btn:last-child { border-bottom: none; }
+
+  .nav-btn:hover {
+    background: var(--gold-dim);
+    padding-left: 28px;
+  }
+
+  .nav-btn-icon {
+    font-size: 1.4rem;
+    width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .nav-btn-text { flex: 1; }
+
+  .nav-btn-label {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+    color: var(--white);
+    line-height: 1;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .nav-btn:hover .nav-btn-label { color: var(--gold-l); }
+
+  .nav-btn-desc {
+    font-size: 0.85rem;
+    color: var(--grey);
+  }
+
+  .nav-btn-arrow {
+    color: #333;
+    font-size: 1.3rem;
+    transition: color 0.15s, transform 0.15s;
+    flex-shrink: 0;
+  }
+
+  .nav-btn:hover .nav-btn-arrow {
+    color: var(--gold);
+    transform: translateX(4px);
+  }
+
+  .group-sep {
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── CARTE SUIVI ── */
+  .suivi-card {
+    background: var(--bg2);
+    border: 1px solid rgba(74,144,217,0.35);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .suivi-card:hover {
+    border-color: var(--blue);
+    box-shadow: 0 0 32px rgba(74,144,217,0.15);
+  }
+
+  .suivi-card-top {
+    background: var(--blue-dim);
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(74,144,217,0.2);
+  }
+
+  .suivi-card-eyebrow {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 4px;
+    color: var(--blue);
+    margin-bottom: 6px;
+  }
+
+  .suivi-card-title {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 2rem;
+    letter-spacing: 3px;
+    color: var(--white);
+    line-height: 1.1;
+  }
+
+  .suivi-card-body {
+    padding: 20px 24px 24px;
+  }
+
+  .suivi-card-desc {
+    font-size: 0.95rem;
+    color: var(--grey);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .suivi-card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(74,144,217,0.12);
+    border: 1px solid rgba(74,144,217,0.4);
+    color: var(--blue);
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 2px;
+    padding: 9px 20px;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+
+  .suivi-card:hover .suivi-card-cta {
+    background: rgba(74,144,217,0.22);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 18px 48px;
+    border-top: 1px solid rgba(201,168,76,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-info {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    color: #333;
+  }
+
+  .version-badge {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    color: var(--gold);
+    background: var(--gold-dim);
+    border: 1px solid var(--border);
+    padding: 5px 18px;
+    border-radius: 20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">TABLEAU DE BORD</div>
+  <div class="header-title">SUIVI <span>RÉSERVATIONS</span></div>
+  <div class="header-line"></div>
+</header>
+
+<main>
+
+  <!-- Colonne gauche : Gestion -->
+  <div class="col">
+    <div class="section-label">GESTION</div>
+    <div class="btn-group">
+
+      <button class="nav-btn" onclick="navigate('/reservations')">
+        <span class="nav-btn-icon">📋</span>
+        <span class="nav-btn-text">
+          <span class="nav-btn-label">LISTE DES RÉSERVATIONS</span>
+          <span class="nav-btn-desc">Consulter · Filtrer · Trier</span>
+        </span>
+        <span class="nav-btn-arrow">›</span>
+      </button>
+
+      <button class="nav-btn" onclick="navigate('/listings')">
+        <span class="nav-btn-icon">🏠</span>
+        <span class="nav-btn-text">
+          <span class="nav-btn-label">LISTE DES PROPRIÉTÉS</span>
+          <span class="nav-btn-desc">Appartements · Statuts · Détails</span>
+        </span>
+        <span class="nav-btn-arrow">›</span>
+      </button>
+
+      <button class="nav-btn" onclick="navigate('/owners')">
+        <span class="nav-btn-icon">👤</span>
+        <span class="nav-btn-text">
+          <span class="nav-btn-label">LISTE DES PROPRIÉTAIRES</span>
+          <span class="nav-btn-desc">Contacts · Portefeuille</span>
+        </span>
+        <span class="nav-btn-arrow">›</span>
+      </button>
+
+      <div class="group-sep"></div>
+
+      <button class="nav-btn" onclick="navigate('/maj-reservations')">
+        <span class="nav-btn-icon">🔄</span>
+        <span class="nav-btn-text">
+          <span class="nav-btn-label">MAJ RÉSERVATIONS</span>
+          <span class="nav-btn-desc">Importer · Modifier · Supprimer</span>
+        </span>
+        <span class="nav-btn-arrow">›</span>
+      </button>
+
+      <button class="nav-btn" onclick="navigate('/maj-listings')">
+        <span class="nav-btn-icon">✏️</span>
+        <span class="nav-btn-text">
+          <span class="nav-btn-label">MAJ PROPRIÉTÉS</span>
+          <span class="nav-btn-desc">Ajouter · Éditer · Archiver</span>
+        </span>
+        <span class="nav-btn-arrow">›</span>
+      </button>
+
+      <button class="nav-btn" onclick="navigate('/maj-owners')">
+        <span class="nav-btn-icon">👥</span>
+        <span class="nav-btn-text">
+          <span class="nav-btn-label">MAJ PROPRIÉTAIRES</span>
+          <span class="nav-btn-desc">Ajouter · Éditer · Archiver</span>
+        </span>
+        <span class="nav-btn-arrow">›</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Colonne droite : Suivi -->
+  <div class="col">
+    <div class="section-label">SUIVI</div>
+    <div class="suivi-card" onclick="navigate('/suivi-prises')">
+      <div class="suivi-card-top">
+        <div class="suivi-card-eyebrow">ANALYSE</div>
+        <div class="suivi-card-title">SUIVI PRISE DE<br>RÉSERVATION</div>
+      </div>
+      <div class="suivi-card-body">
+        <p class="suivi-card-desc">
+          Visualisez la cadence de prise de réservation par propriété, par plateforme et par période.
+        </p>
+        <div class="suivi-card-cta">ACCÉDER ›</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span class="footer-info">BLACK6 · PORT 3010</span>
+  <span class="version-badge">v0.1.4</span>
+</footer>
+
+<script>
+  function navigate(route) { window.location.href = route; }
+</script>
+
+</body>
+</html>
