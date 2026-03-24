@@ -5,19 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Propriétaires — Suivi Réservations</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bebas+Neue&display=swap');
 
   :root {
-    --bg:       #0a0a0a;
-    --bg2:      #111111;
-    --gold:     #c9a84c;
-    --gold-l:   #e8c96a;
-    --gold-dim: rgba(201,168,76,0.10);
-    --white:    #f0ece0;
-    --grey:     #666;
-    --border:   rgba(201,168,76,0.22);
-    --row-alt:  rgba(255,255,255,0.02);
-    --row-hov:  rgba(201,168,76,0.06);
+    --bg:      #000000;
+    --bg2:     #0d0d0d;
+    --gold:    #f0c040;
+    --white:   #ffffff;
+    --grey:    #999999;
+    --border:  rgba(240,192,64,0.30);
+    --row-alt: rgba(255,255,255,0.04);
+    --row-hov: rgba(240,192,64,0.10);
   }
 
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -25,7 +23,7 @@
   body {
     background: var(--bg);
     color: var(--white);
-    font-family: 'Nunito', Arial, sans-serif;
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -34,8 +32,8 @@
   /* ── HEADER ── */
   header {
     width: 100%;
-    padding: 20px 48px;
-    border-bottom: 1px solid var(--border);
+    padding: 20px 40px;
+    border-bottom: 2px solid var(--border);
     display: flex;
     align-items: center;
     gap: 20px;
@@ -43,31 +41,30 @@
 
   .back-btn {
     font-family: 'Bebas Neue', Impact, sans-serif;
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     letter-spacing: 3px;
     color: var(--gold);
     text-decoration: none;
-    border: 1px solid var(--border);
-    padding: 8px 20px;
+    border: 2px solid var(--border);
+    padding: 10px 24px;
     border-radius: 6px;
     transition: background 0.15s, border-color 0.15s;
-    flex-shrink: 0;
   }
-  .back-btn:hover { background: var(--gold-dim); border-color: var(--gold); }
+  .back-btn:hover { border-color: var(--gold); background: rgba(240,192,64,0.10); }
 
   .header-app {
     font-family: 'Bebas Neue', Impact, sans-serif;
-    font-size: 1rem;
+    font-size: 1.1rem;
     letter-spacing: 3px;
     color: var(--grey);
   }
 
   /* ── MAIN ── */
-  main { flex: 1; padding: 48px 64px 64px; }
+  main { flex: 1; padding: 40px; max-width: 960px; margin: 0 auto; width: 100%; }
 
   .page-title {
     font-family: 'Bebas Neue', Impact, sans-serif;
-    font-size: clamp(3rem, 5vw, 5rem);
+    font-size: clamp(3rem, 5vw, 4.5rem);
     letter-spacing: 6px;
     color: var(--gold);
     line-height: 1;
@@ -75,60 +72,63 @@
   }
 
   .page-subtitle {
-    font-size: 1rem;
+    font-size: 1.1rem;
     color: var(--grey);
-    letter-spacing: 1px;
-    margin-bottom: 40px;
+    margin-bottom: 36px;
   }
 
   /* ── STATS ── */
-  .stats-bar { display: flex; gap: 20px; margin-bottom: 32px; flex-wrap: wrap; }
+  .stats-bar { display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
 
   .stat-box {
     background: var(--bg2);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: 8px;
-    padding: 14px 28px;
+    padding: 16px 32px;
     text-align: center;
-    min-width: 130px;
+    min-width: 140px;
   }
   .stat-val {
     font-family: 'Bebas Neue', Impact, sans-serif;
-    font-size: 2.4rem;
+    font-size: 3rem;
     color: var(--gold);
     letter-spacing: 2px;
     line-height: 1;
   }
   .stat-lbl {
-    font-size: 0.78rem;
+    font-size: 1rem;
     color: var(--grey);
-    letter-spacing: 1px;
     text-transform: uppercase;
-    margin-top: 4px;
+    margin-top: 6px;
+    font-weight: 700;
   }
+  .stat-box.clickable { cursor:pointer; transition:border-color 0.15s, background 0.15s; }
+  .stat-box.clickable:hover { border-color:var(--gold); background:rgba(240,192,64,0.06); }
+  .stat-box.stat-active { border-color:var(--gold) !important; background:rgba(240,192,64,0.12); }
+  .stat-box.stat-active .stat-lbl { color:var(--gold); }
 
   /* ── RECHERCHE ── */
   .search-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 
   .search-input {
     background: var(--bg2);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     color: var(--white);
-    font-family: 'Nunito', Arial, sans-serif;
-    font-size: 1rem;
-    padding: 10px 18px;
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+    font-size: 1.2rem;
+    padding: 12px 20px;
     border-radius: 8px;
     outline: none;
-    width: 320px;
+    width: 380px;
     transition: border-color 0.15s;
   }
   .search-input:focus { border-color: var(--gold); }
   .search-input::placeholder { color: var(--grey); }
-  .result-count { font-size: 0.9rem; color: var(--grey); margin-left: auto; }
+  .result-count { font-size: 1.1rem; color: var(--grey); margin-left: auto; font-weight: 700; }
 
   /* ── TABLEAU ── */
   .table-wrap {
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
     background: var(--bg2);
@@ -137,12 +137,12 @@
   table { width: 100%; border-collapse: collapse; }
 
   thead th {
-    background: rgba(201,168,76,0.10);
+    background: rgba(240,192,64,0.08);
     color: var(--gold);
     font-family: 'Bebas Neue', Impact, sans-serif;
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     letter-spacing: 2px;
-    padding: 16px 24px;
+    padding: 18px 28px;
     text-align: left;
     border-bottom: 2px solid var(--border);
     cursor: pointer;
@@ -150,59 +150,71 @@
     white-space: nowrap;
     transition: background 0.15s;
   }
-  thead th:hover { background: rgba(201,168,76,0.18); }
-  thead th .si { margin-left: 6px; opacity: 0.35; font-size: 0.85rem; }
-  thead th.sorted .si { opacity: 1; color: var(--gold-l); }
+  thead th:hover { background: rgba(240,192,64,0.16); }
+  thead th .si { margin-left: 8px; opacity: 0.4; font-size: 1rem; }
+  thead th.sorted .si { opacity: 1; color: #fff; }
 
   tbody tr {
-    border-bottom: 1px solid rgba(201,168,76,0.07);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
     transition: background 0.12s;
   }
   tbody tr:last-child { border-bottom: none; }
   tbody tr:nth-child(even) { background: var(--row-alt); }
   tbody tr:hover { background: var(--row-hov); }
 
-  tbody td { padding: 14px 24px; font-size: 1.05rem; vertical-align: middle; }
+  tbody td { padding: 18px 28px; vertical-align: middle; }
 
-  td.col-nom   { font-weight: 700; color: var(--white); }
-  td.col-email { color: var(--grey); font-size: 0.9rem; }
+  td.col-nom {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--white);
+    width: 100%;
+  }
   td.col-nb {
     font-family: 'Bebas Neue', Impact, sans-serif;
-    font-size: 1.6rem;
+    font-size: 2.2rem;
     color: var(--gold);
     text-align: center;
+    white-space: nowrap;
+    padding-right: 36px;
   }
-  td.col-id { font-family: monospace; font-size: 0.72rem; color: #3a3a3a; }
+  td.col-id {
+    font-family: 'Atkinson Hyperlegible', monospace;
+    font-size: 1.1rem;
+    color: var(--white);
+    white-space: nowrap;
+    letter-spacing: 1px;
+  }
 
   /* ── ÉTATS ── */
   .state {
     text-align: center;
     padding: 60px 24px;
     color: var(--grey);
-    font-size: 1rem;
+    font-size: 1.3rem;
     letter-spacing: 2px;
     font-family: 'Bebas Neue', Impact, sans-serif;
   }
-  .state.error { color: #e05555; }
+  .state.error { color: #ff6b6b; font-size: 1.2rem; }
 
   .spinner {
     display: inline-block;
-    width: 28px; height: 28px;
-    border: 3px solid rgba(201,168,76,0.15);
+    width: 36px; height: 36px;
+    border: 4px solid rgba(240,192,64,0.15);
     border-top-color: var(--gold);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ── FOOTER ── */
-  footer { padding: 18px 48px; border-top: 1px solid rgba(201,168,76,0.1); }
+  footer { padding: 16px 40px; border-top: 1px solid rgba(255,255,255,0.08); }
   .footer-info {
     font-family: 'Bebas Neue', Impact, sans-serif;
-    font-size: 0.85rem;
+    font-size: 1rem;
     letter-spacing: 3px;
-    color: #2a2a2a;
+    color: var(--grey);
   }
 </style>
 </head>
@@ -218,7 +230,7 @@
   <p class="page-subtitle">Contacts · Portefeuille · Nombre de propriétés</p>
 
   <div class="stats-bar">
-    <div class="stat-box">
+    <div class="stat-box clickable stat-active" id="stat-box-all" onclick="setOwnerFilter(null)">
       <div class="stat-val" id="stat-total">—</div>
       <div class="stat-lbl">Propriétaires</div>
     </div>
@@ -226,7 +238,7 @@
       <div class="stat-val" id="stat-listings">—</div>
       <div class="stat-lbl">Propriétés total</div>
     </div>
-    <div class="stat-box">
+    <div class="stat-box clickable" id="stat-box-sans" onclick="setOwnerFilter('sans')">
       <div class="stat-val" id="stat-sans">—</div>
       <div class="stat-lbl">Sans propriété</div>
     </div>
@@ -234,22 +246,19 @@
 
   <div class="search-bar">
     <input class="search-input" type="text" id="search"
-      placeholder="Rechercher un propriétaire…" oninput="filterAndRender()">
+      placeholder="Rechercher un propriétaire…" oninput="debounceFilter()">
     <span class="result-count" id="result-count"></span>
   </div>
 
   <div class="table-wrap">
     <div class="state" id="state-loading">
-      <div class="spinner"></div><br>CHARGEMENT DEPUIS GUESTY…
+      <div class="spinner"></div><br>CHARGEMENT…
     </div>
     <table id="owners-table" style="display:none">
       <thead>
         <tr>
-          <th onclick="sortBy('nom')"        id="th-nom">   NOM <span class="si">↕</span></th>
-          <th onclick="sortBy('email')"       id="th-email"> EMAIL <span class="si">↕</span></th>
-          <th onclick="sortBy('nb_listings')" id="th-nb" style="text-align:center">
-            PROPRIÉTÉS <span class="si">↕</span>
-          </th>
+          <th onclick="sortBy('nom')"        id="th-nom">NOM <span class="si">↕</span></th>
+          <th onclick="sortBy('nb_listings')" id="th-nb" style="text-align:center">PROPRIÉTÉS <span class="si">↕</span></th>
           <th>ID</th>
         </tr>
       </thead>
@@ -264,11 +273,56 @@
 </footer>
 
 <script>
-  let allData = [];
-  let sortCol = 'nom';
-  let sortAsc = true;
+  const STORE_KEY = 'suivi_owners_prefs';
+
+  let allData       = [];
+  let sortCol       = 'nom';
+  let sortAsc       = true;
+  let ownerFilter   = null; // null | 'sans'
+  let debounceTimer = null;
+
+  function savePrefs() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        sortCol,
+        sortAsc,
+        ownerFilter,
+        search: document.getElementById('search').value,
+      }));
+    } catch(e) {}
+  }
+
+  function setOwnerFilter(val) {
+    ownerFilter = (ownerFilter === val) ? null : val; // clic répété = reset
+    updateStatBoxes();
+    savePrefs();
+    filterAndRender();
+  }
+
+  function updateStatBoxes() {
+    document.getElementById('stat-box-all').classList.toggle('stat-active',  ownerFilter === null);
+    document.getElementById('stat-box-sans').classList.toggle('stat-active', ownerFilter === 'sans');
+  }
+
+  function loadPrefs() {
+    try {
+      return JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+    } catch(e) { return {}; }
+  }
+
+  function debounceFilter() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => { savePrefs(); filterAndRender(); }, 200);
+  }
 
   async function load() {
+    const prefs = loadPrefs();
+    if (prefs.sortCol)               sortCol     = prefs.sortCol;
+    if (prefs.sortAsc !== undefined)  sortAsc     = prefs.sortAsc;
+    if (prefs.ownerFilter)            ownerFilter = prefs.ownerFilter;
+    if (prefs.search) document.getElementById('search').value = prefs.search;
+    updateStatBoxes();
+
     try {
       const res  = await fetch('/api/owners');
       const data = await res.json();
@@ -281,6 +335,20 @@
 
       document.getElementById('state-loading').style.display = 'none';
       document.getElementById('owners-table').style.display  = 'table';
+
+      // Restaurer l'indicateur de tri visuel
+      if (prefs.sortCol) {
+        const map = { nom:'th-nom', nb_listings:'th-nb' };
+        const thId = map[prefs.sortCol];
+        if (thId) {
+          const th = document.getElementById(thId);
+          if (th) {
+            th.classList.add('sorted');
+            th.querySelector('.si').textContent = sortAsc ? '↑' : '↓';
+          }
+        }
+      }
+
       filterAndRender();
     } catch(e) {
       document.getElementById('state-loading').style.display = 'none';
@@ -291,13 +359,13 @@
   }
 
   function filterAndRender() {
+    savePrefs();
     const q = document.getElementById('search').value.toLowerCase().trim();
-    let data = allData.filter(o =>
-      !q ||
-      o.nom.toLowerCase().includes(q) ||
-      o.email.toLowerCase().includes(q) ||
-      o.id.toLowerCase().includes(q)
-    );
+    let data = allData.filter(o => {
+      if (ownerFilter === 'sans' && o.nb_listings > 0) return false;
+      if (q && !o.nom.toLowerCase().includes(q) && !o.id.toLowerCase().includes(q)) return false;
+      return true;
+    });
 
     data.sort((a, b) => {
       let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
@@ -313,7 +381,6 @@
     document.getElementById('owners-body').innerHTML = data.map(o => `
       <tr>
         <td class="col-nom">${esc(o.nom)}</td>
-        <td class="col-email">${esc(o.email)}</td>
         <td class="col-nb">${o.nb_listings || '—'}</td>
         <td class="col-id">${esc(o.id)}</td>
       </tr>
@@ -323,7 +390,8 @@
   function sortBy(col) {
     sortAsc = sortCol === col ? !sortAsc : true;
     sortCol = col;
-    const map = { nom:'th-nom', email:'th-email', nb_listings:'th-nb' };
+    savePrefs();
+    const map = { nom:'th-nom', nb_listings:'th-nb' };
     Object.entries(map).forEach(([c, id]) => {
       const th   = document.getElementById(id);
       const icon = th.querySelector('.si');

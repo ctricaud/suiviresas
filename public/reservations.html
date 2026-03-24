@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Réservations — Suivi Réservations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bebas+Neue&display=swap');
+
+  :root {
+    --bg:      #000000;
+    --bg2:     #0d0d0d;
+    --gold:    #f0c040;
+    --white:   #ffffff;
+    --grey:    #999999;
+    --border:  rgba(240,192,64,0.30);
+    --row-alt: rgba(255,255,255,0.04);
+    --row-hov: rgba(240,192,64,0.10);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--white); font-family:'Atkinson Hyperlegible',Arial,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ── HEADER ── */
+  header { width:100%; padding:20px 40px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:20px; }
+  .back-btn { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.3rem; letter-spacing:3px; color:var(--gold); text-decoration:none; border:2px solid var(--border); padding:10px 24px; border-radius:6px; transition:background 0.15s,border-color 0.15s; }
+  .back-btn:hover { border-color:var(--gold); background:rgba(240,192,64,0.10); }
+  .header-app { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:3px; color:var(--grey); }
+
+  /* ── MAIN ── */
+  main { flex:1; padding:40px; max-width:1500px; margin:0 auto; width:100%; }
+  .page-title { font-family:'Bebas Neue',Impact,sans-serif; font-size:clamp(3rem,5vw,4.5rem); letter-spacing:6px; color:var(--gold); line-height:1; margin-bottom:6px; }
+  .page-subtitle { font-size:1.1rem; color:var(--grey); margin-bottom:36px; }
+
+  /* ── STATS ── */
+  .stats-bar { display:flex; gap:16px; margin-bottom:32px; flex-wrap:wrap; }
+  .stat-box { background:var(--bg2); border:2px solid var(--border); border-radius:8px; padding:16px 32px; text-align:center; min-width:140px; }
+  .stat-val { font-family:'Bebas Neue',Impact,sans-serif; font-size:3rem; color:var(--gold); letter-spacing:2px; line-height:1; }
+  .stat-lbl { font-size:1rem; color:var(--grey); text-transform:uppercase; margin-top:6px; font-weight:700; }
+  .stat-box.clickable { cursor:pointer; transition:border-color 0.15s,background 0.15s; }
+  .stat-box.clickable:hover { border-color:var(--gold); background:rgba(240,192,64,0.06); }
+  .stat-box.stat-active { border-color:var(--gold) !important; background:rgba(240,192,64,0.12); }
+  .stat-box.stat-active .stat-lbl { color:var(--gold); }
+
+  /* ── FILTRES ── */
+  .filters { display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+  .search-input, .sel-filter {
+    background:var(--bg2); border:2px solid var(--border); color:var(--white);
+    font-family:'Atkinson Hyperlegible',Arial,sans-serif; font-size:1.2rem;
+    padding:12px 20px; border-radius:8px; outline:none; transition:border-color 0.15s;
+  }
+  .search-input { width:260px; }
+  .search-input:focus, .sel-filter:focus { border-color:var(--gold); }
+  .search-input::placeholder { color:var(--grey); }
+  .sel-filter { cursor:pointer; min-width:220px; }
+  .sel-filter option { background:#000; color:#fff; }
+  .result-count { font-size:1.1rem; color:var(--grey); margin-left:auto; font-weight:700; white-space:nowrap; }
+
+  /* ── TABLEAU ── */
+  .table-wrap { border:2px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg2); overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; min-width:1200px; }
+
+  thead th {
+    background:rgba(240,192,64,0.08); color:var(--gold);
+    font-family:'Bebas Neue',Impact,sans-serif; font-size:1.15rem; letter-spacing:2px;
+    padding:16px 16px; text-align:left; border-bottom:2px solid var(--border);
+    cursor:pointer; user-select:none; white-space:nowrap; transition:background 0.15s;
+  }
+  thead th:hover { background:rgba(240,192,64,0.16); }
+  thead th.no-sort { cursor:default; }
+  thead th.no-sort:hover { background:rgba(240,192,64,0.08); }
+  thead th .si { margin-left:6px; opacity:0.4; font-size:0.85rem; }
+  thead th.sorted .si { opacity:1; color:#fff; }
+
+  tbody tr { border-bottom:1px solid rgba(255,255,255,0.07); transition:background 0.12s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:nth-child(even) { background:var(--row-alt); }
+  tbody tr:hover { background:var(--row-hov); }
+  tbody tr.cancelled { opacity:0.4; }
+
+  tbody td { padding:13px 16px; vertical-align:middle; white-space:nowrap; }
+
+  td.col-code  { font-family:'Atkinson Hyperlegible',monospace; font-size:1.05rem; color:var(--gold); letter-spacing:1px; }
+  td.col-guest { font-size:1.15rem; font-weight:700; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+  td.col-prop  { font-size:1.05rem; color:var(--grey); max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+  td.col-date  { font-size:1.1rem; }
+  td.col-num   { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.8rem; color:var(--gold); text-align:center; }
+  td.col-plat  { font-size:1rem; color:var(--grey); text-transform:capitalize; }
+  td.col-stat  { text-align:center; }
+  td.col-money { font-size:1.1rem; text-align:right; }
+  td.col-pm    { font-size:1.1rem; color:var(--gold); font-weight:700; text-align:right; }
+
+  .badge { font-family:'Bebas Neue',Impact,sans-serif; font-size:0.85rem; letter-spacing:2px; padding:3px 10px; border-radius:20px; display:inline-block; }
+  .badge-confirmed   { background:rgba(74,222,128,0.12);  border:2px solid rgba(74,222,128,0.4);  color:#4ade80; }
+  .badge-cancelled   { background:rgba(153,153,153,0.10); border:2px solid rgba(153,153,153,0.3); color:var(--grey); }
+  .badge-inquiry     { background:rgba(251,191,36,0.12);  border:2px solid rgba(251,191,36,0.35); color:#fbbf24; }
+  .badge-checked_in  { background:rgba(96,165,250,0.12);  border:2px solid rgba(96,165,250,0.4);  color:#60a5fa; }
+  .badge-checked_out { background:rgba(153,153,153,0.10); border:2px solid rgba(153,153,153,0.3); color:var(--grey); }
+  .badge-reserved    { background:rgba(240,192,64,0.12);  border:2px solid rgba(240,192,64,0.4);  color:var(--gold); }
+  .badge-default     { background:rgba(255,255,255,0.06); border:2px solid rgba(255,255,255,0.2); color:var(--white); }
+
+  /* ── WIDGET MOIS ── */
+  .month-widget {
+    margin-left: auto;
+    background: var(--bg2);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    min-width: 160px;
+    position: relative;
+    transition: border-color 0.2s, background 0.2s;
+    user-select: none;
+  }
+  .month-widget.filter-active {
+    border-color: var(--gold);
+    background: rgba(240,192,64,0.10);
+  }
+  .month-arrow {
+    background: none;
+    border: none;
+    color: var(--grey);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 20px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    width: 100%;
+    text-align: center;
+  }
+  .month-arrow:hover { color: var(--gold); background: rgba(240,192,64,0.10); }
+  .month-display {
+    text-align: center;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .month-display:hover { background: rgba(240,192,64,0.10); }
+  .month-widget.filter-active .month-display { cursor: default; }
+  .month-widget.filter-active .month-display:hover { background: none; }
+  .month-name {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 2rem;
+    letter-spacing: 3px;
+    color: var(--grey);
+    line-height: 1;
+    margin-top: 4px;
+    transition: color 0.2s;
+  }
+  .month-year {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 2px;
+    color: var(--grey);
+    margin-bottom: 4px;
+    transition: color 0.2s;
+  }
+  .month-widget.filter-active .month-name,
+  .month-widget.filter-active .month-year { color: var(--gold); }
+  .month-reset {
+    position: absolute;
+    top: 5px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--grey);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+    line-height: 1;
+    display: none;
+    transition: color 0.15s;
+  }
+  .month-reset:hover { color: #ff6b6b; }
+  .month-widget.filter-active .month-reset { display: block; }
+
+  /* ── ÉTATS ── */
+  .state { text-align:center; padding:60px 24px; color:var(--grey); font-size:1.3rem; letter-spacing:2px; font-family:'Bebas Neue',Impact,sans-serif; }
+  .state.error { color:#ff6b6b; font-size:1.15rem; font-family:'Atkinson Hyperlegible',Arial,sans-serif; letter-spacing:0; }
+  .spinner { display:inline-block; width:36px; height:36px; border:4px solid rgba(240,192,64,0.15); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:16px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── FOOTER ── */
+  footer { padding:16px 40px; border-top:1px solid rgba(255,255,255,0.08); }
+  .footer-info { font-family:'Bebas Neue',Impact,sans-serif; font-size:1rem; letter-spacing:3px; color:var(--grey); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="back-btn">← ACCUEIL</a>
+  <span class="header-app">SUIVI RÉSERVATIONS</span>
+</header>
+
+<main>
+  <h1 class="page-title">RÉSERVATIONS</h1>
+  <p class="page-subtitle">Historique · Financier · Suivi par propriété</p>
+
+  <div class="stats-bar">
+    <div class="stat-box clickable stat-active" id="stat-box-all" onclick="setFilter(null)">
+      <div class="stat-val" id="stat-total">—</div>
+      <div class="stat-lbl">Total</div>
+    </div>
+    <div class="stat-box clickable" id="stat-box-upcoming" onclick="setFilter('upcoming')">
+      <div class="stat-val" id="stat-upcoming">—</div>
+      <div class="stat-lbl">À venir</div>
+    </div>
+    <div class="stat-box clickable" id="stat-box-confirmed" onclick="setFilter('confirmed')">
+      <div class="stat-val" id="stat-confirmed">—</div>
+      <div class="stat-lbl">Confirmées</div>
+    </div>
+    <div class="stat-box clickable" id="stat-box-past" onclick="setFilter('past')">
+      <div class="stat-val" id="stat-past">—</div>
+      <div class="stat-lbl">Passées</div>
+    </div>
+    <div class="stat-box clickable" id="stat-box-cancelled" onclick="setFilter('cancelled')">
+      <div class="stat-val" id="stat-cancelled">—</div>
+      <div class="stat-lbl">Annulées</div>
+    </div>
+
+    <div class="month-widget" id="month-widget">
+      <button class="month-arrow" onclick="navigateMonth(1)" title="Mois suivant">▲</button>
+      <div class="month-display" onclick="activateMonthFilter()" title="Filtrer sur ce mois">
+        <div class="month-name" id="month-name">—</div>
+        <div class="month-year" id="month-year">—</div>
+      </div>
+      <button class="month-arrow" onclick="navigateMonth(-1)" title="Mois précédent">▼</button>
+      <button class="month-reset" onclick="resetMonthFilter()" title="Supprimer le filtre mois">✕</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <input class="search-input" type="text" id="search"
+      placeholder="Code, voyageur…" oninput="debounceRender()">
+    <select class="sel-filter" id="sel-listing" onchange="render()">
+      <option value="">Toutes les propriétés</option>
+    </select>
+    <select class="sel-filter" id="sel-owner" onchange="render()">
+      <option value="">Tous les propriétaires</option>
+    </select>
+    <span class="result-count" id="result-count"></span>
+  </div>
+
+  <div class="table-wrap">
+    <div class="state" id="state-loading"><div class="spinner"></div><br>CHARGEMENT…</div>
+    <table id="resas-table" style="display:none">
+      <thead>
+        <tr>
+          <th onclick="sortBy('listing_nom')"       id="th-listing">LISTING <span class="si">↕</span></th>
+          <th onclick="sortBy('platform')"          id="th-plat">PLATEFORME <span class="si">↕</span></th>
+          <th onclick="sortBy('check_in')"          id="th-date">DATE DÉBUT <span class="si">↕</span></th>
+          <th onclick="sortBy('nights')"            id="th-nuits" style="text-align:center">NUITS <span class="si">↕</span></th>
+          <th onclick="sortBy('total_client')"      id="th-total" style="text-align:right">TOTAL CLIENT <span class="si">↕</span></th>
+          <th onclick="sortBy('fare_cleaning')"     id="th-clean" style="text-align:right">MÉNAGE <span class="si">↕</span></th>
+          <th onclick="sortBy('frais_plateforme')"  id="th-comm"  style="text-align:right">FRAIS PLATEFORME <span class="si">↕</span></th>
+          <th onclick="sortBy('pm_revenue')"        id="th-pm"    style="text-align:right">FRAIS CONCIERGERIE <span class="si">↕</span></th>
+          <th onclick="sortBy('owner_payout')"      id="th-rev"   style="text-align:right">VERSEMENT <span class="si">↕</span></th>
+          <th onclick="sortBy('confirmation_code')" id="th-code">N° RÉSERVATION <span class="si">↕</span></th>
+          <th class="no-sort">STATUT</th>
+          <th onclick="sortBy('confirmed_at')"      id="th-booking">DATE RÉSERVATION <span class="si">↕</span></th>
+          <th onclick="sortBy('guest_name')"        id="th-guest">NOM CLIENT <span class="si">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="resas-body"></tbody>
+    </table>
+    <div class="state error" id="state-error" style="display:none"></div>
+  </div>
+</main>
+
+<footer>
+  <span class="footer-info">BLACK6 · PORT 3010</span>
+</footer>
+
+<script>
+  const STORE_KEY = 'suivi_reservations_prefs';
+  const TODAY     = new Date().toISOString().slice(0, 10);
+
+  const MOIS = ['JANVIER','FÉVRIER','MARS','AVRIL','MAI','JUIN','JUILLET','AOÛT','SEPTEMBRE','OCTOBRE','NOVEMBRE','DÉCEMBRE'];
+
+  let allData      = [];
+  let sortCol      = 'check_in';
+  let sortAsc      = false;
+  let statusFilter = null;   // null | 'upcoming' | 'confirmed' | 'past' | 'cancelled'
+  let monthFilter  = null;   // null | { year: number, month: number } (1-indexed)
+  let debTimer     = null;
+
+  // ── Statuts ────────────────────────────────────────────────
+  const STATUS_LABEL = {
+    confirmed:        'CONFIRMÉE',
+    cancelled:        'ANNULÉE',
+    canceled:         'ANNULÉE',
+    inquiry:          'DEMANDE',
+    reserved:         'RÉSERVÉE',
+    awaiting_payment: 'EN ATTENTE',
+    checked_in:       'EN COURS',
+    checked_out:      'TERMINÉE',
+    declined:         'REFUSÉE',
+    expired:          'EXPIRÉE',
+  };
+  const STATUS_BADGE = {
+    confirmed:        'badge-confirmed',
+    cancelled:        'badge-cancelled',
+    canceled:         'badge-cancelled',
+    inquiry:          'badge-inquiry',
+    reserved:         'badge-reserved',
+    awaiting_payment: 'badge-inquiry',
+    checked_in:       'badge-checked_in',
+    checked_out:      'badge-checked_out',
+    declined:         'badge-cancelled',
+    expired:          'badge-cancelled',
+  };
+
+  // ── Helpers ────────────────────────────────────────────────
+  function esc(s)      { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function fmtDate(s)  { if (!s) return '—'; const [y,m,d]=s.slice(0,10).split('-'); return `${d}/${m}/${y}`; }
+  function fmtMoney(v) {
+    if (v == null) return '—';
+    return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(v);
+  }
+  function isCancelled(r)  { return r.status === 'cancelled' || r.status === 'canceled'; }
+  function isUpcoming(r)   { return r.check_in && r.check_in.slice(0,10) >= TODAY && !isCancelled(r); }
+  function isPast(r)       { return !isUpcoming(r) && !isCancelled(r); }
+
+  // ── Prefs ──────────────────────────────────────────────────
+  function savePrefs() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        sortCol, sortAsc, statusFilter, monthFilter,
+        search:    document.getElementById('search').value,
+        listingId: document.getElementById('sel-listing').value,
+        ownerId:   document.getElementById('sel-owner').value,
+      }));
+    } catch(e) {}
+  }
+  function loadPrefs() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch(e) { return {}; }
+  }
+
+  // ── Filtre statut ──────────────────────────────────────────
+  function setFilter(val) {
+    statusFilter = (statusFilter === val) ? null : val;
+    updateStatBoxes();
+    savePrefs();
+    render();
+  }
+  function updateStatBoxes() {
+    ['all','upcoming','confirmed','past','cancelled'].forEach(k => {
+      const val = k === 'all' ? null : k;
+      const el = document.getElementById(`stat-box-${k}`);
+      if (el) el.classList.toggle('stat-active', statusFilter === val);
+    });
+  }
+
+  // ── Chargement ─────────────────────────────────────────────
+  async function load() {
+    const prefs = loadPrefs();
+    if (prefs.sortCol)               sortCol      = prefs.sortCol;
+    if (prefs.sortAsc !== undefined)  sortAsc      = prefs.sortAsc;
+    if (prefs.statusFilter)           statusFilter = prefs.statusFilter;
+    if (prefs.monthFilter)            monthFilter  = prefs.monthFilter;
+    if (prefs.search)    document.getElementById('search').value = prefs.search;
+    updateStatBoxes();
+    updateMonthWidget();
+
+    try {
+      const [rR, rL, rO] = await Promise.all([
+        fetch('/api/reservations'),
+        fetch('/api/listings'),
+        fetch('/api/owners'),
+      ]);
+      if (!rR.ok) throw new Error('Erreur chargement réservations');
+      if (!rL.ok) throw new Error('Erreur chargement propriétés');
+      if (!rO.ok) throw new Error('Erreur chargement propriétaires');
+
+      allData        = await rR.json();
+      const listings = await rL.json();
+      const owners   = await rO.json();
+
+      // Filtre propriétés (seulement celles avec des réservations)
+      const usedListings = new Set(allData.map(r => r.listing_id).filter(Boolean));
+      const selL = document.getElementById('sel-listing');
+      listings
+        .filter(l => usedListings.has(l.id))
+        .sort((a,b) => (a.nom||'').localeCompare(b.nom||'', 'fr'))
+        .forEach(l => {
+          const o = document.createElement('option');
+          o.value = l.id; o.textContent = l.nom;
+          selL.appendChild(o);
+        });
+      if (prefs.listingId) selL.value = prefs.listingId;
+
+      // Filtre propriétaires (seulement ceux avec des réservations)
+      const usedOwners = new Set(allData.map(r => r.owner_id).filter(Boolean));
+      const selO = document.getElementById('sel-owner');
+      owners
+        .filter(o => usedOwners.has(o.id))
+        .sort((a,b) => (a.nom||'').localeCompare(b.nom||'', 'fr'))
+        .forEach(o => {
+          const opt = document.createElement('option');
+          opt.value = o.id; opt.textContent = o.nom;
+          selO.appendChild(opt);
+        });
+      if (prefs.ownerId) selO.value = prefs.ownerId;
+
+      document.getElementById('state-loading').style.display = 'none';
+      document.getElementById('resas-table').style.display   = 'table';
+
+      updateMonthWidget();
+
+      // Restaurer l'indicateur de tri visuel
+      const thMap = {
+        listing_nom:'th-listing', platform:'th-plat', check_in:'th-date',
+        nights:'th-nuits', total_client:'th-total', fare_cleaning:'th-clean',
+        frais_plateforme:'th-comm', pm_revenue:'th-pm', owner_payout:'th-rev',
+        confirmation_code:'th-code', confirmed_at:'th-booking', guest_name:'th-guest',
+      };
+      if (prefs.sortCol && thMap[prefs.sortCol]) {
+        const th = document.getElementById(thMap[prefs.sortCol]);
+        if (th) { th.classList.add('sorted'); th.querySelector('.si').textContent = sortAsc ? '↑' : '↓'; }
+      }
+
+      render();
+
+    } catch(e) {
+      document.getElementById('state-loading').style.display = 'none';
+      const el = document.getElementById('state-error');
+      el.style.display = 'block';
+      el.textContent   = '⚠ Erreur : ' + e.message;
+    }
+  }
+
+  // ── Rendu ──────────────────────────────────────────────────
+  function debounceRender() {
+    clearTimeout(debTimer);
+    debTimer = setTimeout(() => { savePrefs(); render(); }, 200);
+  }
+
+  function render() {
+    savePrefs();
+    const q         = document.getElementById('search').value.toLowerCase().trim();
+    const listingId = document.getElementById('sel-listing').value;
+    const ownerId   = document.getElementById('sel-owner').value;
+
+    // Base = données filtrées par propriété/propriétaire/mois
+    // Les stats reflètent cette sélection
+    const base = allData.filter(r => {
+      if (listingId && r.listing_id !== listingId) return false;
+      if (ownerId   && r.owner_id   !== ownerId)   return false;
+      if (monthFilter) {
+        const prefix = `${monthFilter.year}-${String(monthFilter.month).padStart(2,'0')}`;
+        if (!r.check_in || !r.check_in.startsWith(prefix)) return false;
+      }
+      return true;
+    });
+
+    // Mise à jour des stat boxes selon la sélection owner/listing
+    document.getElementById('stat-total').textContent     = base.length;
+    document.getElementById('stat-upcoming').textContent  = base.filter(isUpcoming).length;
+    document.getElementById('stat-confirmed').textContent = base.filter(r => r.status === 'confirmed').length;
+    document.getElementById('stat-past').textContent      = base.filter(isPast).length;
+    document.getElementById('stat-cancelled').textContent = base.filter(isCancelled).length;
+
+    // Filtre statut + recherche texte
+    let data = base.filter(r => {
+      if (statusFilter === 'upcoming'  && !isUpcoming(r))          return false;
+      if (statusFilter === 'confirmed' && r.status !== 'confirmed') return false;
+      if (statusFilter === 'past'      && !isPast(r))              return false;
+      if (statusFilter === 'cancelled' && !isCancelled(r))         return false;
+      if (q) {
+        const hay = [r.confirmation_code, r.guest_name, r.listing_nom, r.platform]
+          .map(v => (v||'').toLowerCase()).join(' ');
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const NUMERIC = ['nights','total_client','fare_cleaning','frais_plateforme','pm_revenue','owner_payout'];
+    data.sort((a, b) => {
+      let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+      if (NUMERIC.includes(sortCol)) {
+        va = parseFloat(va) || 0;
+        vb = parseFloat(vb) || 0;
+        return sortAsc ? va - vb : vb - va;
+      }
+      return sortAsc
+        ? String(va).localeCompare(String(vb), 'fr')
+        : String(vb).localeCompare(String(va), 'fr');
+    });
+
+    const totalVersement = data.reduce((s, r) => s + (r.owner_payout || 0), 0);
+    const hasVersement   = data.some(r => r.owner_payout != null);
+    document.getElementById('result-count').textContent =
+      `${data.length} réservation${data.length > 1 ? 's' : ''}` +
+      (hasVersement ? ` · Versement : ${fmtMoney(totalVersement)}` : '');
+
+    document.getElementById('resas-body').innerHTML = data.map(r => `
+      <tr class="${isCancelled(r) ? 'cancelled' : ''}">
+        <td class="col-prop"  title="${esc(r.listing_nom)}">${esc(r.listing_nom || '—')}</td>
+        <td class="col-plat">${esc(r.platform || '—')}</td>
+        <td class="col-date">${fmtDate(r.check_in)}</td>
+        <td class="col-num">${r.nights || '—'}</td>
+        <td class="col-money">${fmtMoney(r.total_client)}</td>
+        <td class="col-money">${fmtMoney(r.fare_cleaning)}</td>
+        <td class="col-money">${fmtMoney(r.frais_plateforme)}</td>
+        <td class="col-pm">${fmtMoney(r.pm_revenue)}</td>
+        <td class="col-money">${fmtMoney(r.owner_payout)}</td>
+        <td class="col-code">${esc(r.confirmation_code || r.id.slice(0,8))}</td>
+        <td class="col-stat"><span class="badge ${STATUS_BADGE[r.status]||'badge-default'}">${STATUS_LABEL[r.status]||(r.status||'').toUpperCase()}</span></td>
+        <td class="col-date">${fmtDate(r.confirmed_at)}</td>
+        <td class="col-guest" title="${esc(r.guest_name)}">${esc(r.guest_name || '—')}</td>
+      </tr>`
+    ).join('');
+  }
+
+  // ── Filtre mois ────────────────────────────────────────────
+  function activateMonthFilter() {
+    if (monthFilter) return;
+    const n = new Date();
+    monthFilter = { year: n.getFullYear(), month: n.getMonth() + 1 };
+    updateMonthWidget();
+    savePrefs();
+    render();
+  }
+
+  function navigateMonth(delta) {
+    if (!monthFilter) {
+      const n = new Date();
+      monthFilter = { year: n.getFullYear(), month: n.getMonth() + 1 };
+    }
+    let m = monthFilter.month + delta;
+    let y = monthFilter.year;
+    if (m > 12) { m = 1; y++; }
+    if (m < 1)  { m = 12; y--; }
+    monthFilter = { year: y, month: m };
+    updateMonthWidget();
+    savePrefs();
+    render();
+  }
+
+  function resetMonthFilter() {
+    monthFilter = null;
+    updateMonthWidget();
+    savePrefs();
+    render();
+  }
+
+  function updateMonthWidget() {
+    const widget = document.getElementById('month-widget');
+    const nameEl = document.getElementById('month-name');
+    const yearEl = document.getElementById('month-year');
+    const ref    = monthFilter || (() => { const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() + 1 }; })();
+    nameEl.textContent = MOIS[ref.month - 1];
+    yearEl.textContent = ref.year;
+    widget.classList.toggle('filter-active', monthFilter !== null);
+  }
+
+  // ── Tri ────────────────────────────────────────────────────
+  function sortBy(col) {
+    sortAsc = (sortCol === col) ? !sortAsc : true;
+    sortCol = col;
+    savePrefs();
+    const thMap = {
+      listing_nom:'th-listing', platform:'th-plat', check_in:'th-date',
+      nights:'th-nuits', total_client:'th-total', fare_cleaning:'th-clean',
+      frais_plateforme:'th-comm', pm_revenue:'th-pm', owner_payout:'th-rev',
+      confirmation_code:'th-code', confirmed_at:'th-booking', guest_name:'th-guest',
+    };
+    Object.entries(thMap).forEach(([c, id]) => {
+      const th = document.getElementById(id);
+      if (!th) return;
+      if (c === sortCol) {
+        th.classList.add('sorted');
+        th.querySelector('.si').textContent = sortAsc ? '↑' : '↓';
+      } else {
+        th.classList.remove('sorted');
+        th.querySelector('.si').textContent = '↕';
+      }
+    });
+    render();
+  }
+
+  load();
+</script>
+</body>
+</html>

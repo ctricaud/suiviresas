@@ -2,12 +2,18 @@
 // Persistance en base SQLite (table config)
 // Renouvellement uniquement si expiré — max 5/jour chez Guesty
 
+require('dotenv').config();
 const https = require('https');
 const db    = require('./sql1');
 
-const GUESTY_CLIENT_ID     = '0oaqf53n8oTcDNWDY5d7';
-const GUESTY_CLIENT_SECRET = '5RISAMWeMLEPfFOVxRpKu8IWG1Hu-YXAzHgsy1Odd4yECDNseBqVmafKcRHYOaB9';
+const GUESTY_CLIENT_ID     = process.env.GUESTY_CLIENT_ID;
+const GUESTY_CLIENT_SECRET = process.env.GUESTY_CLIENT_SECRET;
 const MARGIN               = 5 * 60 * 1000; // 5 min de marge
+
+if (!GUESTY_CLIENT_ID || !GUESTY_CLIENT_SECRET) {
+  console.error('[Guesty] ERREUR : GUESTY_CLIENT_ID et GUESTY_CLIENT_SECRET doivent être définis dans .env');
+  process.exit(1);
+}
 
 // ── Table config ──────────────────────────────────────────────
 // Crée la table si elle n'existe pas encore
@@ -76,6 +82,7 @@ function fetchNewToken() {
       hostname: 'open-api.guesty.com',
       path:     '/oauth2/token',
       method:   'POST',
+      timeout:  15000,
       headers: {
         'Content-Type':   'application/x-www-form-urlencoded',
         'Content-Length': Buffer.byteLength(body),
@@ -100,6 +107,10 @@ function fetchNewToken() {
       });
     });
 
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Timeout renouvellement token Guesty'));
+    });
     req.on('error', reject);
     req.write(body);
     req.end();

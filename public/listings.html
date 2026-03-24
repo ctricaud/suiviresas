@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Propriétés — Suivi Réservations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bebas+Neue&display=swap');
+
+  :root {
+    --bg:      #000000;
+    --bg2:     #0d0d0d;
+    --gold:    #f0c040;
+    --white:   #ffffff;
+    --grey:    #999999;
+    --border:  rgba(240,192,64,0.30);
+    --row-alt: rgba(255,255,255,0.04);
+    --row-hov: rgba(240,192,64,0.10);
+    --inactive:#444444;
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header { width:100%; padding:20px 40px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:20px; }
+  .back-btn { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.3rem; letter-spacing:3px; color:var(--gold); text-decoration:none; border:2px solid var(--border); padding:10px 24px; border-radius:6px; transition:background 0.15s,border-color 0.15s; }
+  .back-btn:hover { border-color:var(--gold); background:rgba(240,192,64,0.10); }
+  .header-app { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:3px; color:var(--grey); }
+
+  /* ── MAIN ── */
+  main { flex:1; padding:40px; max-width:1100px; margin:0 auto; width:100%; }
+
+  .page-title { font-family:'Bebas Neue',Impact,sans-serif; font-size:clamp(3rem,5vw,4.5rem); letter-spacing:6px; color:var(--gold); line-height:1; margin-bottom:6px; }
+  .page-subtitle { font-size:1.1rem; color:var(--grey); margin-bottom:36px; }
+
+  /* ── STATS ── */
+  .stats-bar { display:flex; gap:16px; margin-bottom:32px; flex-wrap:wrap; }
+  .stat-box { background:var(--bg2); border:2px solid var(--border); border-radius:8px; padding:16px 32px; text-align:center; min-width:140px; }
+  .stat-val { font-family:'Bebas Neue',Impact,sans-serif; font-size:3rem; color:var(--gold); letter-spacing:2px; line-height:1; }
+  .stat-lbl { font-size:1rem; color:var(--grey); text-transform:uppercase; margin-top:6px; font-weight:700; }
+  .stat-box.clickable { cursor:pointer; transition:border-color 0.15s, background 0.15s; }
+  .stat-box.clickable:hover { border-color:var(--gold); background:rgba(240,192,64,0.06); }
+  .stat-box.stat-active { border-color:var(--gold) !important; background:rgba(240,192,64,0.12); }
+  .stat-box.stat-active .stat-lbl { color:var(--gold); }
+
+  /* ── FILTRES ── */
+  .filters { display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+
+  .search-input, .owner-select {
+    background: var(--bg2);
+    border: 2px solid var(--border);
+    color: var(--white);
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+    font-size: 1.2rem;
+    padding: 12px 20px;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input { width:320px; }
+  .search-input:focus, .owner-select:focus { border-color:var(--gold); }
+  .search-input::placeholder { color:var(--grey); }
+
+  .owner-select { cursor:pointer; min-width:280px; }
+  .owner-select option { background:#000; color:#fff; }
+
+  .result-count { font-size:1.1rem; color:var(--grey); margin-left:auto; font-weight:700; white-space:nowrap; }
+
+  /* ── TABLEAU ── */
+  .table-wrap { border:2px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg2); }
+
+  table { width:100%; border-collapse:collapse; }
+
+  thead th {
+    background: rgba(240,192,64,0.08);
+    color: var(--gold);
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    padding: 18px 24px;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  thead th:hover { background:rgba(240,192,64,0.16); }
+  thead th .si { margin-left:8px; opacity:0.4; font-size:1rem; }
+  thead th.sorted .si { opacity:1; color:#fff; }
+
+  tbody tr { border-bottom:1px solid rgba(255,255,255,0.07); transition:background 0.12s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:nth-child(even) { background:var(--row-alt); }
+  tbody tr:hover { background:var(--row-hov); }
+  tbody tr.inactive { opacity:0.45; }
+
+  tbody td { padding:16px 24px; vertical-align:middle; }
+
+  td.col-nom  { font-size:1.3rem; font-weight:700; color:var(--white); }
+  td.col-own  { font-size:1.1rem; color:var(--grey); }
+  td.col-num  { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.8rem; color:var(--gold); text-align:center; white-space:nowrap; }
+  td.col-stat { text-align:center; white-space:nowrap; }
+  td.col-id   { font-family:'Atkinson Hyperlegible',monospace; font-size:1.1rem; color:var(--white); white-space:nowrap; letter-spacing:1px; }
+
+  .badge {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    display: inline-block;
+  }
+  .badge-actif   { background:rgba(74,222,128,0.12); border:2px solid rgba(74,222,128,0.4); color:#4ade80; }
+  .badge-inactif { background:rgba(153,153,153,0.10); border:2px solid rgba(153,153,153,0.3); color:var(--grey); }
+
+  /* ── ÉTATS ── */
+  .state { text-align:center; padding:60px 24px; color:var(--grey); font-size:1.3rem; letter-spacing:2px; font-family:'Bebas Neue',Impact,sans-serif; }
+  .state.error { color:#ff6b6b; font-size:1.2rem; font-family:'Atkinson Hyperlegible',Arial,sans-serif; letter-spacing:0; }
+
+  .spinner { display:inline-block; width:36px; height:36px; border:4px solid rgba(240,192,64,0.15); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:16px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── FOOTER ── */
+  footer { padding:16px 40px; border-top:1px solid rgba(255,255,255,0.08); }
+  .footer-info { font-family:'Bebas Neue',Impact,sans-serif; font-size:1rem; letter-spacing:3px; color:var(--grey); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="back-btn">← ACCUEIL</a>
+  <span class="header-app">SUIVI RÉSERVATIONS</span>
+</header>
+
+<main>
+  <h1 class="page-title">PROPRIÉTÉS</h1>
+  <p class="page-subtitle">Appartements · Statuts · Détails</p>
+
+  <div class="stats-bar">
+    <div class="stat-box clickable stat-active" id="stat-box-all" onclick="setStatusFilter(null)">
+      <div class="stat-val" id="stat-total">—</div>
+      <div class="stat-lbl">Total</div>
+    </div>
+    <div class="stat-box clickable" id="stat-box-actif" onclick="setStatusFilter('actif')">
+      <div class="stat-val" id="stat-actifs">—</div>
+      <div class="stat-lbl">Actives</div>
+    </div>
+    <div class="stat-box clickable" id="stat-box-inactif" onclick="setStatusFilter('inactif')">
+      <div class="stat-val" id="stat-inactifs">—</div>
+      <div class="stat-lbl">Inactives</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="stat-proprio">—</div>
+      <div class="stat-lbl">Propriétaires</div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <input class="search-input" type="text" id="search"
+      placeholder="Rechercher une propriété…" oninput="debounceFilter()">
+    <select class="owner-select" id="owner-filter" onchange="filterAndRender()">
+      <option value="">Tous les propriétaires</option>
+    </select>
+    <span class="result-count" id="result-count"></span>
+  </div>
+
+  <div class="table-wrap">
+    <div class="state" id="state-loading">
+      <div class="spinner"></div><br>CHARGEMENT…
+    </div>
+    <table id="listings-table" style="display:none">
+      <thead>
+        <tr>
+          <th onclick="sortBy('nom')"       id="th-nom">NOM <span class="si">↕</span></th>
+          <th onclick="sortBy('owner_nom')" id="th-own">PROPRIÉTAIRE <span class="si">↕</span></th>
+          <th onclick="sortBy('commission')" id="th-com" style="text-align:center">COMMISSION <span class="si">↕</span></th>
+          <th onclick="sortBy('cleaning_fee')" id="th-fee" style="text-align:center">FRAIS MÉNAGE <span class="si">↕</span></th>
+          <th style="text-align:center">STATUT</th>
+          <th>ID</th>
+        </tr>
+      </thead>
+      <tbody id="listings-body"></tbody>
+    </table>
+    <div class="state error" id="state-error" style="display:none"></div>
+  </div>
+</main>
+
+<footer>
+  <span class="footer-info">BLACK6 · PORT 3010</span>
+</footer>
+
+<script>
+  const STORE_KEY = 'suivi_listings_prefs';
+
+  let allData       = [];
+  let sortCol       = 'nom';
+  let sortAsc       = true;
+  let statusFilter  = null; // null | 'actif' | 'inactif'
+  let debounceTimer = null;
+
+  function savePrefs() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        sortCol,
+        sortAsc,
+        statusFilter,
+        search:  document.getElementById('search').value,
+        ownerId: document.getElementById('owner-filter').value,
+      }));
+    } catch(e) {}
+  }
+
+  function setStatusFilter(val) {
+    statusFilter = (statusFilter === val) ? null : val; // clic répété = reset
+    updateStatBoxes();
+    savePrefs();
+    filterAndRender();
+  }
+
+  function updateStatBoxes() {
+    document.getElementById('stat-box-all').classList.toggle('stat-active',    statusFilter === null);
+    document.getElementById('stat-box-actif').classList.toggle('stat-active',  statusFilter === 'actif');
+    document.getElementById('stat-box-inactif').classList.toggle('stat-active', statusFilter === 'inactif');
+  }
+
+  function loadPrefs() {
+    try {
+      return JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+    } catch(e) { return {}; }
+  }
+
+  function debounceFilter() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => { savePrefs(); filterAndRender(); }, 200);
+  }
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function load() {
+    // Restaurer les préférences sauvegardées
+    const prefs = loadPrefs();
+    if (prefs.sortCol)              sortCol      = prefs.sortCol;
+    if (prefs.sortAsc !== undefined) sortAsc     = prefs.sortAsc;
+    if (prefs.statusFilter)          statusFilter = prefs.statusFilter;
+    if (prefs.search) document.getElementById('search').value = prefs.search;
+    updateStatBoxes();
+
+    try {
+      const [resListings, resOwners] = await Promise.all([
+        fetch('/api/listings'),
+        fetch('/api/owners'),
+      ]);
+
+      if (!resListings.ok) throw new Error('Erreur chargement propriétés');
+      if (!resOwners.ok)   throw new Error('Erreur chargement propriétaires');
+
+      allData = await resListings.json();
+      const owners = await resOwners.json();
+
+      // Stats globales (sur l'ensemble, avant filtre)
+      document.getElementById('stat-total').textContent    = allData.length;
+      document.getElementById('stat-actifs').textContent   = allData.filter(l => l.active).length;
+      document.getElementById('stat-inactifs').textContent = allData.filter(l => !l.active).length;
+      const ownerIds = new Set(allData.map(l => l.owner_id).filter(Boolean));
+      document.getElementById('stat-proprio').textContent  = ownerIds.size;
+
+      // Peupler le filtre propriétaire puis restaurer la sélection
+      const sel = document.getElementById('owner-filter');
+      owners
+        .filter(o => ownerIds.has(o.id))
+        .forEach(o => {
+          const opt = document.createElement('option');
+          opt.value       = o.id;
+          opt.textContent = o.nom;
+          sel.appendChild(opt);
+        });
+      if (prefs.ownerId) sel.value = prefs.ownerId;
+
+      document.getElementById('state-loading').style.display  = 'none';
+      document.getElementById('listings-table').style.display = 'table';
+
+      // Restaurer l'indicateur de tri visuel
+      if (prefs.sortCol) {
+        const map = { nom:'th-nom', owner_nom:'th-own', commission:'th-com', cleaning_fee:'th-fee' };
+        const thId = map[prefs.sortCol];
+        if (thId) {
+          const th = document.getElementById(thId);
+          if (th) {
+            th.classList.add('sorted');
+            th.querySelector('.si').textContent = sortAsc ? '↑' : '↓';
+          }
+        }
+      }
+
+      filterAndRender();
+
+    } catch(e) {
+      document.getElementById('state-loading').style.display = 'none';
+      const el = document.getElementById('state-error');
+      el.style.display = 'block';
+      el.textContent   = '⚠ Erreur : ' + e.message;
+    }
+  }
+
+  function filterAndRender() {
+    savePrefs();
+    const q       = document.getElementById('search').value.toLowerCase().trim();
+    const ownerId = document.getElementById('owner-filter').value;
+
+    let data = allData.filter(l => {
+      if (ownerId && l.owner_id !== ownerId) return false;
+      if (q && !l.nom.toLowerCase().includes(q)) return false;
+      if (statusFilter === 'actif'   &&  !l.active) return false;
+      if (statusFilter === 'inactif' && l.active)   return false;
+      return true;
+    });
+
+    data.sort((a, b) => {
+      let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+      if (sortCol === 'commission') {
+        va = parseFloat(va) || 0;
+        vb = parseFloat(vb) || 0;
+        return sortAsc ? va - vb : vb - va;
+      }
+      if (typeof va === 'number') return sortAsc ? va - vb : vb - va;
+      return sortAsc
+        ? String(va).localeCompare(String(vb), 'fr')
+        : String(vb).localeCompare(String(va), 'fr');
+    });
+
+    document.getElementById('result-count').textContent =
+      `${data.length} propriété${data.length > 1 ? 's' : ''}`;
+
+    document.getElementById('listings-body').innerHTML = data.map(l => `
+      <tr class="${l.active ? '' : 'inactive'}">
+        <td class="col-nom">${esc(l.nom)}</td>
+        <td class="col-own">${esc(l.owner_nom || '—')}</td>
+        <td class="col-num">${l.commission != null ? l.commission + ' %' : '—'}</td>
+        <td class="col-num">${esc(l.cleaning_fee || '—')}</td>
+        <td class="col-stat">
+          <span class="badge ${l.active ? 'badge-actif' : 'badge-inactif'}">
+            ${l.active ? 'ACTIF' : 'INACTIF'}
+          </span>
+        </td>
+        <td class="col-id">${esc(l.id)}</td>
+      </tr>
+    `).join('');
+  }
+
+  function sortBy(col) {
+    sortAsc = sortCol === col ? !sortAsc : true;
+    sortCol = col;
+    savePrefs();
+    const map = { nom:'th-nom', owner_nom:'th-own', commission:'th-com', cleaning_fee:'th-fee' };
+    Object.entries(map).forEach(([c, id]) => {
+      const th   = document.getElementById(id);
+      if (!th) return;
+      const icon = th.querySelector('.si');
+      if (c === sortCol) {
+        th.classList.add('sorted');
+        icon.textContent = sortAsc ? '↑' : '↓';
+      } else {
+        th.classList.remove('sorted');
+        icon.textContent = '↕';
+      }
+    });
+    filterAndRender();
+  }
+
+  load();
+</script>
+</body>
+</html>

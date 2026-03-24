@@ -1,6 +1,6 @@
 {
   "name": "suivi-reservations",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "description": "Suivi des réservations locatives",
   "main": "server.js",
   "scripts": {
@@ -8,6 +8,7 @@
     "dev": "node server.js"
   },
   "dependencies": {
+    "dotenv": "^17.3.1",
     "express": "^4.18.2",
     "node-sqlite3-wasm": "^0.8.20"
   }

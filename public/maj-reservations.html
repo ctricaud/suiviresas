@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAJ Réservations — Suivi Réservations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bebas+Neue&display=swap');
+
+  :root {
+    --bg:        #000000;
+    --bg2:       #0d0d0d;
+    --gold:      #f0c040;
+    --green:     #4ade80;
+    --green-dim: rgba(74,222,128,0.10);
+    --red:       #ff6b6b;
+    --white:     #ffffff;
+    --grey:      #999999;
+    --border:    rgba(240,192,64,0.30);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--white); font-family:'Atkinson Hyperlegible',Arial,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+
+  header { width:100%; padding:20px 40px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:20px; }
+  .back-btn { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.3rem; letter-spacing:3px; color:var(--gold); text-decoration:none; border:2px solid var(--border); padding:10px 24px; border-radius:6px; transition:background 0.15s,border-color 0.15s; }
+  .back-btn:hover { background:rgba(240,192,64,0.10); border-color:var(--gold); }
+  .header-app { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:3px; color:var(--grey); }
+
+  main { flex:1; padding:40px; max-width:700px; }
+
+  .page-title { font-family:'Bebas Neue',Impact,sans-serif; font-size:clamp(3rem,5vw,4.5rem); letter-spacing:6px; color:var(--gold); line-height:1; margin-bottom:8px; }
+  .page-subtitle { font-size:1.1rem; color:var(--grey); margin-bottom:48px; }
+
+  .sync-bloc { background:var(--bg2); border:2px solid var(--border); border-radius:12px; padding:36px 40px; margin-bottom:40px; }
+  .sync-bloc h2 { font-family:'Bebas Neue',Impact,sans-serif; font-size:2.2rem; letter-spacing:3px; color:var(--white); margin-bottom:14px; }
+  .sync-desc { font-size:1.15rem; color:var(--grey); line-height:1.7; margin-bottom:24px; }
+  .sync-desc strong { color:var(--white); }
+
+  .force-row { display:flex; align-items:center; gap:14px; margin-bottom:32px; }
+  .force-row input[type=checkbox] { width:22px; height:22px; accent-color:var(--gold); cursor:pointer; flex-shrink:0; }
+  .force-label { font-size:1.1rem; color:var(--grey); cursor:pointer; }
+  .force-label strong { color:var(--white); }
+
+  .btn-row { display:flex; gap:16px; flex-wrap:wrap; }
+
+  .btn-sync {
+    font-family:'Bebas Neue',Impact,sans-serif; font-size:1.4rem; letter-spacing:3px;
+    color:#000; background:var(--gold); border:none;
+    padding:16px 36px; border-radius:8px; cursor:pointer;
+    transition:opacity 0.15s, transform 0.1s;
+    display:inline-flex; align-items:center; gap:12px;
+  }
+  .btn-sync:hover { opacity:0.88; }
+  .btn-sync:active { transform:scale(0.98); }
+  .btn-sync:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .btn-outline {
+    font-family:'Bebas Neue',Impact,sans-serif; font-size:1.4rem; letter-spacing:3px;
+    color:var(--gold); background:transparent; border:2px solid var(--border);
+    padding:16px 36px; border-radius:8px; cursor:pointer;
+    transition:background 0.15s, border-color 0.15s, transform 0.1s;
+    display:inline-flex; align-items:center; gap:12px;
+  }
+  .btn-outline:hover { background:rgba(240,192,64,0.08); border-color:var(--gold); }
+  .btn-outline:active { transform:scale(0.98); }
+  .btn-outline:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .sync-result { margin-top:28px; padding:22px 28px; border-radius:8px; display:none; }
+  .sync-result.success { background:var(--green-dim); border:2px solid rgba(74,222,128,0.35); color:var(--green); display:block; }
+  .sync-result.error   { background:rgba(255,107,107,0.08); border:2px solid rgba(255,107,107,0.35); color:var(--red); display:block; }
+  .sync-result .res-title  { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.6rem; letter-spacing:2px; margin-bottom:10px; }
+  .sync-result .res-detail { font-size:1.1rem; line-height:1.9; }
+
+  .spinner { display:inline-block; width:22px; height:22px; border:3px solid rgba(0,0,0,0.2); border-top-color:#000; border-radius:50%; animation:spin 0.7s linear infinite; }
+  .spinner-gold { border-color:rgba(240,192,64,0.2); border-top-color:var(--gold); }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  footer { padding:16px 40px; border-top:1px solid rgba(255,255,255,0.08); }
+  .footer-info { font-family:'Bebas Neue',Impact,sans-serif; font-size:1rem; letter-spacing:3px; color:var(--grey); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="back-btn">← ACCUEIL</a>
+  <span class="header-app">SUIVI RÉSERVATIONS</span>
+</header>
+
+<main>
+  <h1 class="page-title">MAJ RÉSERVATIONS</h1>
+  <p class="page-subtitle">Synchronisation depuis Guesty · Mise à jour de la base locale</p>
+
+  <div class="sync-bloc">
+    <h2>SYNCHRONISATION GUESTY</h2>
+    <p class="sync-desc">
+      <strong>Charger à venir</strong> — rapide, synchronise les réservations futures (check-in à partir d'aujourd'hui).<br>
+      <strong>Historique complet</strong> — lent, récupère toutes les réservations en bouclant sur chaque propriété. Nécessite que les propriétés soient synchronisées.<br>
+      L'option <strong>Force</strong> recharge les données financières des réservations déjà présentes.
+    </p>
+
+    <div class="force-row">
+      <input type="checkbox" id="force-check">
+      <label class="force-label" for="force-check">
+        <strong>Force</strong> — recharge toutes les données financières
+      </label>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-sync" id="btn-upcoming" onclick="lancerSync(false)">
+        <span id="icon-upcoming">⟳</span>
+        <span id="txt-upcoming">CHARGER À VENIR</span>
+      </button>
+      <button class="btn-outline" id="btn-full" onclick="lancerSync(true)">
+        <span id="icon-full">⟳</span>
+        <span id="txt-full">HISTORIQUE COMPLET</span>
+      </button>
+    </div>
+
+    <div class="sync-result" id="sync-result"></div>
+  </div>
+
+</main>
+
+<footer>
+  <span class="footer-info">BLACK6 · PORT 3010</span>
+</footer>
+
+<script>
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function lancerSync(full) {
+    const force = document.getElementById('force-check').checked;
+    const label = full ? 'l\'historique complet' : 'les réservations à venir';
+    const extra = force ? ' (force — recharge toutes les données financières)' : '';
+    if (!confirm(`Lancer la synchronisation de ${label}${extra} ?`)) return;
+
+    const btnUpcoming = document.getElementById('btn-upcoming');
+    const btnFull     = document.getElementById('btn-full');
+    const resDiv      = document.getElementById('sync-result');
+
+    btnUpcoming.disabled = true;
+    btnFull.disabled     = true;
+    resDiv.className     = 'sync-result';
+
+    if (full) {
+      document.getElementById('icon-full').innerHTML  = '<span class="spinner spinner-gold"></span>';
+      document.getElementById('txt-full').textContent = 'SYNCHRONISATION EN COURS…';
+    } else {
+      document.getElementById('icon-upcoming').innerHTML  = '<span class="spinner"></span>';
+      document.getElementById('txt-upcoming').textContent = 'SYNCHRONISATION EN COURS…';
+    }
+
+    try {
+      const url = force ? '/api/reservations/sync?force=true'
+                : full  ? '/api/reservations/sync?full=true'
+                        : '/api/reservations/sync';
+      const r    = await fetch(url, { method: 'POST' });
+      const data = await r.json();
+      if (!r.ok || !data.ok) throw new Error(data.error || 'Erreur serveur');
+
+      const { fetched, ajoutes, mis_a_jour, statuts, ignores, erreurs } = data.rapport;
+      resDiv.className = 'sync-result success';
+      resDiv.innerHTML = `
+        <div class="res-title">✓ SYNCHRONISATION RÉUSSIE</div>
+        <div class="res-detail">
+          ${fetched} récupérée${fetched !== 1 ? 's' : ''} depuis Guesty<br>
+          ${ajoutes} ajoutée${ajoutes !== 1 ? 's' : ''}<br>
+          ${mis_a_jour} mise${mis_a_jour !== 1 ? 's' : ''} à jour (données financières)<br>
+          ${statuts} statut${statuts !== 1 ? 's' : ''} mis à jour<br>
+          ${ignores} ignorée${ignores !== 1 ? 's' : ''} (déjà en base)
+          ${erreurs > 0 ? `<br><span style="color:#ff6b6b">⚠ ${erreurs} erreur${erreurs !== 1 ? 's' : ''} de récupération (données financières absentes)</span>` : ''}
+        </div>`;
+
+    } catch(e) {
+      resDiv.className = 'sync-result error';
+      resDiv.innerHTML = `<div class="res-title">⚠ ERREUR</div><div class="res-detail">${esc(e.message)}</div>`;
+    } finally {
+      btnUpcoming.disabled = false;
+      btnFull.disabled     = false;
+      document.getElementById('icon-upcoming').textContent = '⟳';
+      document.getElementById('txt-upcoming').textContent  = 'CHARGER À VENIR';
+      document.getElementById('icon-full').textContent     = '⟳';
+      document.getElementById('txt-full').textContent      = 'HISTORIQUE COMPLET';
+    }
+  }
+</script>
+</body>
+</html>

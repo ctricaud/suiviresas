@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAJ Propriétaires — Suivi Réservations</title>
+<title>MAJ Propriétés — Suivi Réservations</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bebas+Neue&display=swap');
 
@@ -34,7 +34,12 @@
 
   .sync-bloc { background:var(--bg2); border:2px solid var(--border); border-radius:12px; padding:36px 40px; margin-bottom:40px; }
   .sync-bloc h2 { font-family:'Bebas Neue',Impact,sans-serif; font-size:2.2rem; letter-spacing:3px; color:var(--white); margin-bottom:14px; }
-  .sync-desc { font-size:1.15rem; color:var(--grey); line-height:1.7; margin-bottom:32px; }
+  .sync-desc { font-size:1.15rem; color:var(--grey); line-height:1.7; margin-bottom:24px; }
+
+  .force-row { display:flex; align-items:center; gap:14px; margin-bottom:32px; }
+  .force-row input[type=checkbox] { width:22px; height:22px; accent-color:var(--gold); cursor:pointer; flex-shrink:0; }
+  .force-label { font-size:1.1rem; color:var(--grey); cursor:pointer; }
+  .force-label strong { color:var(--white); }
 
   .btn-sync { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.5rem; letter-spacing:3px; color:#000; background:var(--gold); border:none; padding:16px 48px; border-radius:8px; cursor:pointer; transition:opacity 0.15s,transform 0.1s; display:inline-flex; align-items:center; gap:12px; }
   .btn-sync:hover { opacity:0.88; }
@@ -43,9 +48,9 @@
 
   .sync-result { margin-top:28px; padding:22px 28px; border-radius:8px; display:none; }
   .sync-result.success { background:var(--green-dim); border:2px solid rgba(74,222,128,0.35); color:var(--green); display:block; }
-  .sync-result.error { background:rgba(255,107,107,0.08); border:2px solid rgba(255,107,107,0.35); color:var(--red); display:block; }
-  .sync-result .res-title { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.6rem; letter-spacing:2px; margin-bottom:10px; }
-  .sync-result .res-detail { font-size:1.1rem; line-height:1.8; }
+  .sync-result.error   { background:rgba(255,107,107,0.08); border:2px solid rgba(255,107,107,0.35); color:var(--red); display:block; }
+  .sync-result .res-title  { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.6rem; letter-spacing:2px; margin-bottom:10px; }
+  .sync-result .res-detail { font-size:1.1rem; line-height:1.9; }
 
   .spinner { display:inline-block; width:22px; height:22px; border:3px solid rgba(0,0,0,0.2); border-top-color:#000; border-radius:50%; animation:spin 0.7s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
@@ -62,16 +67,24 @@
 </header>
 
 <main>
-  <h1 class="page-title">MAJ PROPRIÉTAIRES</h1>
+  <h1 class="page-title">MAJ PROPRIÉTÉS</h1>
   <p class="page-subtitle">Synchronisation depuis Guesty · Mise à jour de la base locale</p>
 
   <div class="sync-bloc">
     <h2>SYNCHRONISATION GUESTY</h2>
     <p class="sync-desc">
-      Récupère tous les propriétaires depuis Guesty et met à jour la base locale.
-      Les propriétaires existants sont mis à jour, les nouveaux sont ajoutés.
-      Les propriétaires absents de Guesty sont supprimés de la base locale.
+      Récupère la liste des propriétés depuis Guesty et ajoute en base les nouveaux listings.
+      Les propriétés retirées de Guesty sont conservées mais marquées inactives.<br>
+      L'option <strong>Force</strong> met également à jour les propriétés déjà présentes (titre, commission, frais, propriétaire).
     </p>
+
+    <div class="force-row">
+      <input type="checkbox" id="force-check">
+      <label class="force-label" for="force-check">
+        <strong>Force mise à jour complète</strong> — rafraîchit aussi les propriétés existantes
+      </label>
+    </div>
+
     <button class="btn-sync" id="btn-sync" onclick="lancerSync()">
       <span id="btn-icon">⟳</span>
       <span id="btn-txt">SYNCHRONISER DEPUIS GUESTY</span>
@@ -86,8 +99,16 @@
 </footer>
 
 <script>
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
   async function lancerSync() {
-    if (!confirm('Lancer la synchronisation depuis Guesty ?')) return;
+    const force = document.getElementById('force-check').checked;
+    const msg   = force
+      ? 'Lancer la synchronisation complète (mise à jour de toutes les propriétés) ?'
+      : 'Lancer la synchronisation depuis Guesty ?';
+    if (!confirm(msg)) return;
 
     const btn  = document.getElementById('btn-sync');
     const icon = document.getElementById('btn-icon');
@@ -100,36 +121,32 @@
     res.className   = 'sync-result';
 
     try {
-      const r    = await fetch('/api/owners/sync', { method: 'POST' });
+      const url  = '/api/listings/sync' + (force ? '?force=true' : '');
+      const r    = await fetch(url, { method: 'POST' });
       const data = await r.json();
       if (!r.ok || !data.ok) throw new Error(data.error || 'Erreur serveur');
 
-      const { ajoutes, supprimes, modifies } = data.rapport;
+      const { ajoutes, mis_a_jour, inactifs, ignores, erreurs } = data.rapport;
       res.className = 'sync-result success';
       res.innerHTML = `
         <div class="res-title">✓ SYNCHRONISATION RÉUSSIE</div>
         <div class="res-detail">
-          ${ajoutes.length} ajouté${ajoutes.length > 1 ? 's' : ''}
-          ${ajoutes.length ? ' : ' + ajoutes.map(esc).join(', ') : ''}<br>
-          ${supprimes.length} supprimé${supprimes.length > 1 ? 's' : ''}
-          ${supprimes.length ? ' : ' + supprimes.map(esc).join(', ') : ''}<br>
-          ${modifies} mis à jour
+          ${ajoutes} ajouté${ajoutes > 1 ? 's' : ''}<br>
+          ${mis_a_jour} mis à jour<br>
+          ${inactifs} passé${inactifs > 1 ? 's' : ''} inactif${inactifs > 1 ? 's' : ''}<br>
+          ${ignores} ignoré${ignores > 1 ? 's' : ''} (déjà en base, sans force)
+          ${erreurs > 0 ? `<br><span style="color:#ff6b6b">⚠ ${erreurs} erreur${erreurs > 1 ? 's' : ''} de récupération</span>` : ''}
         </div>`;
 
     } catch(e) {
       res.className = 'sync-result error';
-      res.innerHTML = `<div class="res-title">⚠ ERREUR</div><div class="res-detail">${e.message}</div>`;
+      res.innerHTML = `<div class="res-title">⚠ ERREUR</div><div class="res-detail">${esc(e.message)}</div>`;
     } finally {
-      btn.disabled    = false;
+      btn.disabled     = false;
       icon.textContent = '⟳';
       txt.textContent  = 'SYNCHRONISER DEPUIS GUESTY';
     }
   }
-
-  function esc(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
 </script>
 </body>
 </html>
