@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tableau de bord — Suivi Réservations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bebas+Neue&display=swap');
+
+  :root {
+    --bg:     #000000;
+    --bg2:    #0d0d0d;
+    --gold:   #f0c040;
+    --green:  #4ade80;
+    --white:  #ffffff;
+    --grey:   #999999;
+    --border: rgba(240,192,64,0.30);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--white); font-family:'Atkinson Hyperlegible',Arial,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ── HEADER ── */
+  header { width:100%; padding:20px 40px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:20px; }
+  .back-btn { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.3rem; letter-spacing:3px; color:var(--gold); text-decoration:none; border:2px solid var(--border); padding:10px 24px; border-radius:6px; transition:background 0.15s,border-color 0.15s; }
+  .back-btn:hover { border-color:var(--gold); background:rgba(240,192,64,0.10); }
+  .header-app { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:3px; color:var(--grey); }
+
+  /* ── MAIN ── */
+  main { flex:1; padding:40px; max-width:1400px; margin:0 auto; width:100%; display:flex; flex-direction:column; }
+  .page-title    { font-family:'Bebas Neue',Impact,sans-serif; font-size:clamp(3rem,5vw,4.5rem); letter-spacing:6px; color:var(--gold); line-height:1; margin-bottom:6px; }
+  .page-subtitle { font-size:1.1rem; color:var(--grey); margin-bottom:36px; }
+
+  /* ── FILTRES ── */
+  .filters { display:flex; gap:16px; margin-bottom:48px; flex-wrap:wrap; align-items:center; }
+  .sel-filter {
+    background:var(--bg2); border:2px solid var(--border); color:var(--white);
+    font-family:'Atkinson Hyperlegible',Arial,sans-serif; font-size:1.2rem;
+    padding:12px 20px; border-radius:8px; outline:none; cursor:pointer;
+    transition:border-color 0.15s; min-width:240px;
+  }
+  .sel-filter:focus { border-color:var(--gold); }
+  .sel-filter option { background:#000; color:#fff; }
+  .reset-btn {
+    background:transparent; border:2px solid var(--border); color:var(--grey);
+    font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:2px;
+    padding:12px 24px; border-radius:8px; cursor:pointer; transition:border-color 0.15s,color 0.15s;
+  }
+  .reset-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* ── KPI GRID ── */
+  .kpi-grid { display:flex; gap:32px; flex-wrap:wrap; }
+
+  /* ── KPI CARD ── */
+  .kpi-card {
+    flex:1; min-width:320px;
+    background:var(--bg2); border-radius:16px;
+    padding:40px 48px 44px;
+    display:flex; flex-direction:column; gap:0;
+    position:relative; overflow:hidden;
+  }
+  .kpi-card::before {
+    content:''; position:absolute; inset:0;
+    border-radius:16px; pointer-events:none;
+  }
+  .kpi-card.gold-card { border:2px solid rgba(240,192,64,0.45); }
+  .kpi-card.gold-card::before { box-shadow:inset 0 0 80px rgba(240,192,64,0.06); }
+  .kpi-card.green-card { border:2px solid rgba(74,222,128,0.40); }
+  .kpi-card.green-card::before { box-shadow:inset 0 0 80px rgba(74,222,128,0.05); }
+
+  .kpi-eyebrow {
+    font-family:'Bebas Neue',Impact,sans-serif;
+    font-size:1rem; letter-spacing:5px;
+    margin-bottom:10px;
+  }
+  .gold-card  .kpi-eyebrow { color:rgba(240,192,64,0.7); }
+  .green-card .kpi-eyebrow { color:rgba(74,222,128,0.7); }
+
+  .kpi-label {
+    font-family:'Bebas Neue',Impact,sans-serif;
+    font-size:2rem; letter-spacing:3px;
+    color:var(--white); line-height:1.1;
+    margin-bottom:32px;
+  }
+
+  .kpi-amount {
+    font-family:'Bebas Neue',Impact,sans-serif;
+    font-size:clamp(4.5rem,8vw,7rem);
+    letter-spacing:2px; line-height:1;
+    margin-bottom:28px;
+  }
+  .gold-card  .kpi-amount { color:var(--gold); }
+  .green-card .kpi-amount { color:var(--green); }
+
+  .kpi-meta {
+    display:flex; flex-direction:column; gap:6px;
+    border-top:1px solid rgba(255,255,255,0.08);
+    padding-top:20px; margin-top:auto;
+  }
+  .kpi-meta-line {
+    font-size:1.1rem; color:var(--grey);
+  }
+  .kpi-meta-line strong { color:var(--white); font-weight:700; }
+
+  /* ── LOADING / ERREUR ── */
+  .kpi-amount.loading-val { color:rgba(255,255,255,0.15); font-size:4rem; letter-spacing:4px; }
+
+  /* ── SKELETON PULSE ── */
+  @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:.7} }
+  .pulsing { animation:pulse 1.4s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="back-btn">← ACCUEIL</a>
+  <span class="header-app">SUIVI RÉSERVATIONS</span>
+</header>
+
+<main>
+  <div class="page-title">TABLEAU DE BORD</div>
+  <div class="page-subtitle">Vue synthétique · Réservations confirmées uniquement</div>
+
+  <div class="filters">
+    <select id="sel-owner" class="sel-filter">
+      <option value="">Tous les propriétaires</option>
+    </select>
+    <select id="sel-listing" class="sel-filter">
+      <option value="">Toutes les propriétés</option>
+    </select>
+    <button class="reset-btn" onclick="resetFilters()">RÉINITIALISER</button>
+  </div>
+
+  <div class="kpi-grid">
+
+    <!-- Revenus 12 derniers mois -->
+    <div class="kpi-card gold-card">
+      <div class="kpi-eyebrow">ANALYSE</div>
+      <div class="kpi-label">REVENUS<br>12 DERNIERS MOIS</div>
+      <div class="kpi-amount pulsing" id="val-12m">— €</div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-line" id="meta-12m-count">—</div>
+        <div class="kpi-meta-line" id="meta-12m-period">—</div>
+      </div>
+    </div>
+
+    <!-- Réservations à venir -->
+    <div class="kpi-card green-card">
+      <div class="kpi-eyebrow">PRÉVISIONNEL</div>
+      <div class="kpi-label">RÉSERVATIONS<br>À VENIR</div>
+      <div class="kpi-amount pulsing" id="val-avenir">— €</div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-line" id="meta-avenir-count">—</div>
+        <div class="kpi-meta-line" id="meta-avenir-date">—</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const LS_KEY   = 'tableau-de-bord-filters';
+const selOwner   = document.getElementById('sel-owner');
+const selListing = document.getElementById('sel-listing');
+
+// ── Persistance filtres ──────────────────────────────────────
+function saveFilters() {
+  localStorage.setItem(LS_KEY, JSON.stringify({ owner: selOwner.value, listing: selListing.value }));
+}
+function loadSavedFilters() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
+}
+function resetFilters() {
+  selOwner.value = ''; selListing.value = '';
+  saveFilters(); updateListingOptions(); fetchAndRender();
+}
+
+// ── Dropdowns ────────────────────────────────────────────────
+let allListings = [];
+
+async function loadDropdowns() {
+  const [owners, listings] = await Promise.all([
+    fetch('/api/owners').then(r => r.json()),
+    fetch('/api/listings').then(r => r.json())
+  ]);
+  allListings = listings;
+  const saved = loadSavedFilters();
+  for (const o of owners) {
+    const opt = document.createElement('option');
+    opt.value = o.id; opt.textContent = o.nom;
+    selOwner.appendChild(opt);
+  }
+  if (saved.owner) selOwner.value = saved.owner;
+  updateListingOptions(saved.listing);
+}
+
+function updateListingOptions(selectValue) {
+  const ownerId  = selOwner.value;
+  const filtered = ownerId ? allListings.filter(l => l.owner_id === ownerId) : allListings;
+  selListing.innerHTML = '<option value="">Toutes les propriétés</option>';
+  for (const l of filtered) {
+    const opt = document.createElement('option');
+    opt.value = l.id; opt.textContent = l.nom;
+    selListing.appendChild(opt);
+  }
+  if (selectValue && filtered.find(l => l.id === selectValue)) selListing.value = selectValue;
+}
+
+selOwner.addEventListener('change',   () => { updateListingOptions(); saveFilters(); fetchAndRender(); });
+selListing.addEventListener('change', () => { saveFilters(); fetchAndRender(); });
+
+// ── Formatage ────────────────────────────────────────────────
+function fmtAmount(val) {
+  return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(val);
+}
+
+function fmtDate(iso) {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function pluriel(n, mot) {
+  return `${n} ${mot}${n > 1 ? 's' : ''}`;
+}
+
+// ── Fetch & render ───────────────────────────────────────────
+async function fetchAndRender() {
+  // Pulse pendant le chargement
+  document.getElementById('val-12m').classList.add('pulsing');
+  document.getElementById('val-avenir').classList.add('pulsing');
+  document.getElementById('val-12m').textContent    = '— €';
+  document.getElementById('val-avenir').textContent = '— €';
+
+  const params = new URLSearchParams();
+  if (selOwner.value)   params.set('owner_id',   selOwner.value);
+  if (selListing.value) params.set('listing_id', selListing.value);
+
+  const data = await fetch('/api/dashboard?' + params).then(r => r.json());
+
+  // 12 derniers mois
+  document.getElementById('val-12m').textContent = fmtAmount(data.revenus_12m.total);
+  document.getElementById('val-12m').classList.remove('pulsing');
+  document.getElementById('meta-12m-count').innerHTML =
+    `<strong>${pluriel(data.revenus_12m.count, 'réservation')}</strong>`;
+  document.getElementById('meta-12m-period').textContent =
+    `du ${fmtDate(data.period_start)} au ${fmtDate(data.today)}`;
+
+  // À venir
+  document.getElementById('val-avenir').textContent = fmtAmount(data.a_venir.total);
+  document.getElementById('val-avenir').classList.remove('pulsing');
+  document.getElementById('meta-avenir-count').innerHTML =
+    `<strong>${pluriel(data.a_venir.count, 'réservation')}</strong>`;
+  document.getElementById('meta-avenir-date').textContent =
+    `à partir du ${fmtDate(data.tomorrow)}`;
+}
+
+// ── Init ─────────────────────────────────────────────────────
+(async () => {
+  await loadDropdowns();
+  await fetchAndRender();
+})();
+</script>
+</body>
+</html>

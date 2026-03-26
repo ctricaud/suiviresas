@@ -109,7 +109,9 @@ app.get('/listings',         (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/maj-listings',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'maj-listings.html')));
 app.get('/reservations',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'reservations.html')));
 app.get('/maj-reservations', (req, res) => res.sendFile(path.join(__dirname, 'public', 'maj-reservations.html')));
-app.get('/suivi-prises',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'placeholder.html')));
+app.get('/tableau-de-bord',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'tableau-de-bord.html')));
+app.get('/suivi-revenus',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'suivi-revenus.html')));
+app.get('/suivi-prises',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'suivi-prises.html')));
 
 // ── API — Réservations (lecture DB) ──────────────────────────
 app.get('/api/reservations', (req, res) => {
@@ -275,7 +277,8 @@ app.post('/api/reservations/sync', async (req, res) => {
     try {
       // Mise à jour des statuts (sans re-fetch)
       for (const id of toStatus) {
-        db.run('UPDATE reservations SET status = ? WHERE id = ?', [guestyMap[id].status, id]);
+        const normStatus = guestyMap[id].status === 'canceled' ? 'cancelled' : guestyMap[id].status;
+        db.run('UPDATE reservations SET status = ? WHERE id = ?', [normStatus, id]);
       }
 
       for (const { id, detail, isNew } of details) {
@@ -322,7 +325,7 @@ app.post('/api/reservations/sync', async (req, res) => {
             s.checkOut                || null,
             nights,
             d?.guest?.fullName        || s.guest?.fullName || null,
-            d?.guestStay?.createdAt   || null,
+            s.createdAt || d?.createdAt || d?.guestStay?.createdAt || null,
             d?.money?.fareAccommodationAdjusted ?? null,
             d?.money?.fareCleaning              ?? null,
             d?.money?.hostServiceFee            ?? null,
@@ -436,7 +439,7 @@ app.post('/api/listings/sync', async (req, res) => {
         let commission = null;
         const rawFormula = l.commissionFormula ?? null;
         if (rawFormula) {
-          const m = String(rawFormula).match(/net_income\*([0-9.]+)/i);
+          const m = String(rawFormula).replace(/\s+/g, '').match(/net_income\*([0-9.]+)/i);
           if (m) {
             const base   = parseFloat(m[1]);
             const basePC = base <= 1 ? base * 100 : base;
@@ -580,6 +583,159 @@ app.get('/api/debug/listing/:id', async (req, res) => {
 app.get('/api/debug/reservation/:id', async (req, res) => {
   try { res.json(await guestyApi.getReservation(req.params.id)); }
   catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── API — Tableau de bord ─────────────────────────────────────
+// revenus_12m : owner_payout des réservations confirmées dont check_in
+//               est entre aujourd'hui−365j et aujourd'hui (inclus).
+// a_venir     : owner_payout des réservations confirmées dont check_in > aujourd'hui.
+app.get('/api/dashboard', (req, res) => {
+  try {
+    const { owner_id, listing_id } = req.query;
+    const today = new Date().toISOString().substring(0, 10);
+    // Borne exclusive : même jour l'an dernier (ex. 2025-03-26)
+    // → check_in > yearAgo couvre du 2025-03-27 au 2026-03-26 = 365 jours exactement
+    const yAgoD = new Date(today + 'T12:00:00');
+    yAgoD.setFullYear(yAgoD.getFullYear() - 1);
+    const yearAgo     = yAgoD.toISOString().substring(0, 10);
+    const periodStart = new Date(yAgoD.getTime() + 86400000).toISOString().substring(0, 10);
+    const tomorrow    = new Date(new Date(today + 'T12:00:00').getTime() + 86400000).toISOString().substring(0, 10);
+
+    const baseConditions = ["r.status = 'confirmed'", "r.owner_payout IS NOT NULL"];
+    const baseParams     = [];
+    if (listing_id) { baseConditions.push('r.listing_id = ?'); baseParams.push(listing_id); }
+    if (owner_id)   { baseConditions.push('l.owner_id = ?');   baseParams.push(owner_id); }
+
+    const join  = 'FROM reservations r LEFT JOIN listings l ON l.id = r.listing_id';
+    const where = 'WHERE ' + baseConditions.join(' AND ');
+
+    const r12m = db.all(
+      `SELECT ROUND(SUM(r.owner_payout)) AS total, COUNT(*) AS cnt
+       ${join} ${where} AND r.check_in > ? AND r.check_in <= ?`,
+      [...baseParams, yearAgo, today]
+    )[0];
+
+    const avenir = db.all(
+      `SELECT ROUND(SUM(r.owner_payout)) AS total, COUNT(*) AS cnt
+       ${join} ${where} AND r.check_in > ?`,
+      [...baseParams, today]
+    )[0];
+
+    res.json({
+      today,
+      period_start: periodStart,
+      tomorrow,
+      revenus_12m: { total: r12m?.total  || 0, count: r12m?.cnt  || 0 },
+      a_venir:     { total: avenir?.total || 0, count: avenir?.cnt || 0 }
+    });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── API — Analyse revenus (versements propriétaires) ─────────
+// Ventile owner_payout sur les mois de séjour au prorata des nuits.
+// Retourne aussi le nb de logements actifs pour le taux de remplissage.
+app.get('/api/analyse/revenus', (req, res) => {
+  try {
+    const { owner_id, listing_id } = req.query;
+
+    // Nombre de logements actifs (dénominateur taux remplissage)
+    let countSql, countParams = [];
+    if (listing_id) {
+      countSql = 'SELECT COUNT(*) AS cnt FROM listings WHERE id = ? AND active = 1';
+      countParams.push(listing_id);
+    } else if (owner_id) {
+      countSql = 'SELECT COUNT(*) AS cnt FROM listings WHERE owner_id = ? AND active = 1';
+      countParams.push(owner_id);
+    } else {
+      countSql = 'SELECT COUNT(*) AS cnt FROM listings WHERE active = 1';
+    }
+    const listingCount = db.all(countSql, countParams)[0]?.cnt || 1;
+
+    // Réservations confirmées avec données financières
+    const conditions = [
+      "r.status = 'confirmed'",
+      "r.check_in IS NOT NULL",
+      "r.check_out IS NOT NULL",
+      "r.owner_payout IS NOT NULL"
+    ];
+    const params = [];
+    if (listing_id) { conditions.push('r.listing_id = ?'); params.push(listing_id); }
+    if (owner_id)   { conditions.push('l.owner_id = ?');   params.push(owner_id); }
+
+    const resas = db.all(`
+      SELECT r.check_in, r.check_out, r.owner_payout
+      FROM reservations r
+      LEFT JOIN listings l ON l.id = r.listing_id
+      WHERE ${conditions.join(' AND ')}
+    `, params);
+
+    // Ventilation nuit par nuit sur les mois de séjour
+    const agg = {};
+    for (const r of resas) {
+      const start = new Date(r.check_in.substring(0, 10)  + 'T00:00:00');
+      const end   = new Date(r.check_out.substring(0, 10) + 'T00:00:00');
+      const totalNights = (end - start) / 86400000;
+      if (totalNights <= 0) continue;
+
+      let cur = new Date(start);
+      while (cur < end) {
+        const y = cur.getFullYear();
+        const m = cur.getMonth() + 1;
+        const nextMonth = new Date(y, m, 1);
+        const segEnd = end < nextMonth ? end : nextMonth;
+        const n = (segEnd - cur) / 86400000;
+        if (n > 0) {
+          if (!agg[y])    agg[y]    = {};
+          if (!agg[y][m]) agg[y][m] = { nights: 0, revenue: 0 };
+          agg[y][m].nights  += n;
+          agg[y][m].revenue += (n / totalNights) * r.owner_payout;
+        }
+        cur = nextMonth;
+      }
+    }
+
+    const data = [];
+    for (const [y, months] of Object.entries(agg)) {
+      for (const [m, v] of Object.entries(months)) {
+        data.push({ year: +y, month: +m, nights: v.nights, revenue: v.revenue });
+      }
+    }
+    data.sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
+
+    res.json({ listing_count: listingCount, data });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── API — Analyse prises de réservations ─────────────────────
+// Retourne la somme de total_paid par mois/année de confirmed_at
+// pour les réservations confirmées, filtrable par owner_id et/ou listing_id.
+app.get('/api/analyse/prises', (req, res) => {
+  try {
+    const { owner_id, listing_id } = req.query;
+    const conditions = ["r.status = 'confirmed'", "r.confirmed_at IS NOT NULL"];
+    const params = [];
+    if (listing_id) { conditions.push('r.listing_id = ?'); params.push(listing_id); }
+    if (owner_id)   { conditions.push('l.owner_id = ?');   params.push(owner_id); }
+    const where = 'WHERE ' + conditions.join(' AND ');
+    const rows = db.all(`
+      SELECT
+        CAST(strftime('%Y', r.confirmed_at) AS INTEGER) AS year,
+        CAST(strftime('%m', r.confirmed_at) AS INTEGER) AS month,
+        ROUND(SUM(r.total_paid), 2) AS total
+      FROM reservations r
+      LEFT JOIN listings l ON l.id = r.listing_id
+      ${where}
+      GROUP BY year, month
+      ORDER BY year, month
+    `, params);
+    res.json(rows);
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // ── Démarrage ─────────────────────────────────────────────────

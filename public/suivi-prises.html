@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi Prises — Suivi Réservations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bebas+Neue&display=swap');
+
+  :root {
+    --bg:      #000000;
+    --bg2:     #0d0d0d;
+    --gold:    #f0c040;
+    --white:   #ffffff;
+    --grey:    #999999;
+    --border:  rgba(240,192,64,0.30);
+    --row-alt: rgba(255,255,255,0.04);
+    --row-hov: rgba(240,192,64,0.10);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--white); font-family:'Atkinson Hyperlegible',Arial,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ── HEADER ── */
+  header { width:100%; padding:20px 40px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:20px; }
+  .back-btn { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.3rem; letter-spacing:3px; color:var(--gold); text-decoration:none; border:2px solid var(--border); padding:10px 24px; border-radius:6px; transition:background 0.15s,border-color 0.15s; }
+  .back-btn:hover { border-color:var(--gold); background:rgba(240,192,64,0.10); }
+  .header-app { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:3px; color:var(--grey); }
+
+  /* ── MAIN ── */
+  main { flex:1; padding:40px; max-width:1500px; margin:0 auto; width:100%; }
+  .table-outer { display:flex; justify-content:center; }
+  .page-title { font-family:'Bebas Neue',Impact,sans-serif; font-size:clamp(3rem,5vw,4.5rem); letter-spacing:6px; color:var(--gold); line-height:1; margin-bottom:6px; }
+  .page-subtitle { font-size:1.1rem; color:var(--grey); margin-bottom:36px; }
+
+  /* ── FILTRES ── */
+  .filters { display:flex; gap:16px; margin-bottom:32px; flex-wrap:wrap; align-items:center; }
+  .sel-filter {
+    background:var(--bg2); border:2px solid var(--border); color:var(--white);
+    font-family:'Atkinson Hyperlegible',Arial,sans-serif; font-size:1.2rem;
+    padding:12px 20px; border-radius:8px; outline:none; cursor:pointer;
+    transition:border-color 0.15s; min-width:240px;
+  }
+  .sel-filter:focus { border-color:var(--gold); }
+  .sel-filter option { background:#000; color:#fff; }
+  .reset-btn {
+    background:transparent; border:2px solid var(--border); color:var(--grey);
+    font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:2px;
+    padding:12px 24px; border-radius:8px; cursor:pointer; transition:border-color 0.15s,color 0.15s;
+  }
+  .reset-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* ── TABLEAU PIVOT ── */
+  .table-wrap { border:2px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg2); display:inline-block; margin:0 auto; }
+  table { border-collapse:collapse; }
+
+  thead th {
+    background:rgba(240,192,64,0.08); color:var(--gold);
+    font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:2px;
+    padding:12px 32px; text-align:right; border-bottom:2px solid var(--border);
+    white-space:nowrap;
+  }
+  thead th:first-child { text-align:left; min-width:120px; }
+
+  tbody tr { border-bottom:1px solid rgba(255,255,255,0.07); transition:background 0.12s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:nth-child(even) { background:var(--row-alt); }
+  tbody tr:hover { background:var(--row-hov); }
+
+  tbody td {
+    padding:10px 32px; font-size:1.1rem; text-align:right; white-space:nowrap;
+  }
+  tbody td:first-child {
+    text-align:left; color:var(--grey); font-weight:700; font-size:1rem;
+    text-transform:uppercase; letter-spacing:1px;
+  }
+  tbody td.val { color:var(--white); }
+  tbody td.zero { color:rgba(255,255,255,0.20); }
+
+  /* ── LIGNE TOTAL ── */
+  tfoot tr { border-top:2px solid var(--border); }
+  tfoot td {
+    padding:12px 32px; font-family:'Bebas Neue',Impact,sans-serif;
+    font-size:1.2rem; letter-spacing:2px; text-align:right;
+    color:var(--gold); white-space:nowrap;
+  }
+  tfoot td:first-child { text-align:left; }
+
+  /* ── ÉTAT VIDE ── */
+  .empty-state { text-align:center; padding:60px 20px; }
+  .empty-state-icon { font-size:3rem; margin-bottom:16px; opacity:0.4; }
+  .empty-state-msg { font-size:1.2rem; color:var(--grey); }
+
+  /* ── LOADING ── */
+  .loading { text-align:center; padding:60px 20px; }
+  .spinner { display:inline-block; width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="back-btn">← ACCUEIL</a>
+  <span class="header-app">SUIVI RÉSERVATIONS</span>
+</header>
+
+<main>
+  <div class="page-title">SUIVI PRISES</div>
+  <div class="page-subtitle">Total encaissé par mois de réservation · Réservations confirmées uniquement</div>
+
+  <div class="filters">
+    <select id="sel-owner" class="sel-filter">
+      <option value="">Tous les propriétaires</option>
+    </select>
+    <select id="sel-listing" class="sel-filter">
+      <option value="">Toutes les propriétés</option>
+    </select>
+    <button class="reset-btn" onclick="resetFilters()">RÉINITIALISER</button>
+  </div>
+
+  <div class="table-outer"><div class="table-wrap">
+    <div class="loading" id="loading"><div class="spinner"></div></div>
+    <table id="pivot-table" style="display:none">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
+    </table>
+    <div class="empty-state" id="empty-state" style="display:none">
+      <div class="empty-state-icon">📭</div>
+      <div class="empty-state-msg">Aucune réservation confirmée trouvée pour cette sélection.</div>
+    </div>
+  </div></div>
+</main>
+
+<script>
+const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const LS_KEY = 'suivi-prises-filters';
+
+const selOwner   = document.getElementById('sel-owner');
+const selListing = document.getElementById('sel-listing');
+
+// ── Persistance des filtres ──────────────────────────────────
+function saveFilters() {
+  localStorage.setItem(LS_KEY, JSON.stringify({ owner: selOwner.value, listing: selListing.value }));
+}
+
+function loadSavedFilters() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
+}
+
+function resetFilters() {
+  selOwner.value   = '';
+  selListing.value = '';
+  saveFilters();
+  updateListingOptions();
+  fetchAndRender();
+}
+
+// ── Chargement des dropdowns ─────────────────────────────────
+let allListings = [];
+
+async function loadDropdowns() {
+  const [owners, listings] = await Promise.all([
+    fetch('/api/owners').then(r => r.json()),
+    fetch('/api/listings').then(r => r.json())
+  ]);
+  allListings = listings;
+
+  const saved = loadSavedFilters();
+
+  for (const o of owners) {
+    const opt = document.createElement('option');
+    opt.value = o.id; opt.textContent = o.nom;
+    selOwner.appendChild(opt);
+  }
+  if (saved.owner) selOwner.value = saved.owner;
+
+  updateListingOptions(saved.listing);
+}
+
+function updateListingOptions(selectValue) {
+  const ownerId = selOwner.value;
+  const filtered = ownerId ? allListings.filter(l => l.owner_id === ownerId) : allListings;
+
+  selListing.innerHTML = '<option value="">Toutes les propriétés</option>';
+  for (const l of filtered) {
+    const opt = document.createElement('option');
+    opt.value = l.id; opt.textContent = l.nom;
+    selListing.appendChild(opt);
+  }
+  if (selectValue && filtered.find(l => l.id === selectValue)) selListing.value = selectValue;
+}
+
+selOwner.addEventListener('change', () => {
+  updateListingOptions();
+  saveFilters();
+  fetchAndRender();
+});
+
+selListing.addEventListener('change', () => {
+  saveFilters();
+  fetchAndRender();
+});
+
+// ── Formatage ────────────────────────────────────────────────
+function fmt(val) {
+  if (val == null || val === 0) return null;
+  return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(val);
+}
+
+// ── Chargement et rendu ──────────────────────────────────────
+async function fetchAndRender() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('pivot-table').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'none';
+
+  const params = new URLSearchParams();
+  if (selOwner.value)   params.set('owner_id',   selOwner.value);
+  if (selListing.value) params.set('listing_id', selListing.value);
+
+  const rows = await fetch('/api/analyse/prises?' + params).then(r => r.json());
+
+  document.getElementById('loading').style.display = 'none';
+
+  if (!rows.length) {
+    document.getElementById('empty-state').style.display = 'block';
+    return;
+  }
+
+  // Construire la structure pivot
+  const yearsSet = new Set(rows.map(r => r.year));
+  const years = [...yearsSet].sort((a,b) => a - b);
+
+  // data[month][year] = total
+  const data = {};
+  for (let m = 1; m <= 12; m++) data[m] = {};
+  for (const r of rows) data[r.month][r.year] = r.total;
+
+  // Totaux par année
+  const yearTotals = {};
+  for (const y of years) yearTotals[y] = 0;
+  for (const r of rows) yearTotals[r.year] = (yearTotals[r.year] || 0) + r.total;
+
+  // ── Thead ──
+  const thead = document.getElementById('thead');
+  thead.innerHTML = '';
+  const trHead = document.createElement('tr');
+  const thMois = document.createElement('th');
+  thMois.textContent = 'MOIS';
+  trHead.appendChild(thMois);
+  for (const y of years) {
+    const th = document.createElement('th');
+    th.textContent = y;
+    trHead.appendChild(th);
+  }
+  thead.appendChild(trHead);
+
+  // ── Tbody ──
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  for (let m = 1; m <= 12; m++) {
+    const tr = document.createElement('tr');
+    const tdMois = document.createElement('td');
+    tdMois.textContent = MONTHS[m - 1];
+    tr.appendChild(tdMois);
+    for (const y of years) {
+      const td = document.createElement('td');
+      const val = data[m][y] || null;
+      const formatted = fmt(val);
+      if (formatted) { td.textContent = formatted; td.className = 'val'; }
+      else           { td.textContent = '—'; td.className = 'zero'; }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+
+  // ── Tfoot ──
+  const tfoot = document.getElementById('tfoot');
+  tfoot.innerHTML = '';
+  const trFoot = document.createElement('tr');
+  const tdLabel = document.createElement('td');
+  tdLabel.textContent = 'TOTAL';
+  trFoot.appendChild(tdLabel);
+  for (const y of years) {
+    const td = document.createElement('td');
+    td.textContent = fmt(yearTotals[y]) || '—';
+    trFoot.appendChild(td);
+  }
+  tfoot.appendChild(trFoot);
+
+  document.getElementById('pivot-table').style.display = '';
+}
+
+// ── Init ─────────────────────────────────────────────────────
+(async () => {
+  await loadDropdowns();
+  await fetchAndRender();
+})();
+</script>
+
+</body>
+</html>

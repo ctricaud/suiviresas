@@ -118,7 +118,7 @@
 
     } catch(e) {
       res.className = 'sync-result error';
-      res.innerHTML = `<div class="res-title">⚠ ERREUR</div><div class="res-detail">${e.message}</div>`;
+      res.innerHTML = `<div class="res-title">⚠ ERREUR</div><div class="res-detail">${esc(e.message)}</div>`;
     } finally {
       btn.disabled    = false;
       icon.textContent = '⟳';

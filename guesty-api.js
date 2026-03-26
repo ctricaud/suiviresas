@@ -1,10 +1,16 @@
 // guesty-api.js — Requêtes vers l'API Guesty Open API v1
 // Base URL : https://open-api.guesty.com/v1
-// Utilise fetch (undici, natif Node 18+) pour éviter le bug OpenSSL GCM sur Windows/Node 17+
+//
+// Contexte Windows / Node 25 / OpenSSL 3 :
+//   - module https natif → bug GCM (ossl_gcm_stream_update) sur les grosses réponses
+//   - fetch/undici       → UND_ERR_SOCKET sur /reservations
+// Solution : https natif avec ciphersuites:ChaCha20-Poly1305 (pas de GCM → pas de bug)
 
+const https        = require('https');
 const { getToken } = require('./guesty-auth');
 
-const BASE_URL   = 'https://open-api.guesty.com/v1';
+const BASE_HOST  = 'open-api.guesty.com';
+const BASE_PATH  = '/v1';
 const TIMEOUT_MS = 15000;
 const MAX_PAGES  = 100;
 
@@ -16,35 +22,52 @@ async function guestyGet(path, params = {}) {
     throw new Error('Token Guesty indisponible : ' + e.message);
   });
 
-  const qs  = new URLSearchParams(params).toString();
-  const url = BASE_URL + path + (qs ? '?' + qs : '');
+  const qs       = new URLSearchParams(params).toString();
+  const fullPath = BASE_PATH + path + (qs ? '?' + qs : '');
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    const res = await fetch(url, {
-      signal:  controller.signal,
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname:     BASE_HOST,
+      path:         fullPath,
+      method:       'GET',
+      timeout:      TIMEOUT_MS,
+      // ChaCha20-Poly1305 : contourne le bug OpenSSL 3 AES-GCM sur Windows/Node 25
+      // (ossl_gcm_stream_update échoue en lecture chunked ; ChaCha20 n'est pas affecté)
+      ciphersuites: 'TLS_CHACHA20_POLY1305_SHA256',
+      ciphers:      'ECDHE-RSA-CHACHA20-POLY1305:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept':        'application/json',
       },
+    };
+
+    const req = https.request(options, (res) => {
+      let raw = '';
+      res.on('data', chunk => raw += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(raw);
+          if (res.statusCode >= 400) {
+            reject(new Error(`Guesty API ${res.statusCode} sur ${path} : ${raw.slice(0, 200)}`));
+          } else {
+            resolve(json);
+          }
+        } catch (e) {
+          reject(new Error('Réponse non-JSON : ' + raw.slice(0, 200)));
+        }
+      });
     });
 
-    const text = await res.text();
-    let json;
-    try   { json = JSON.parse(text); }
-    catch { throw new Error('Réponse non-JSON : ' + text.slice(0, 200)); }
-
-    if (!res.ok) throw new Error(`Guesty API ${res.status} sur ${path} : ${text.slice(0, 200)}`);
-    return json;
-
-  } catch(e) {
-    if (e.name === 'AbortError') throw new Error(`Timeout requête Guesty (${path})`);
-    throw e;
-  } finally {
-    clearTimeout(timer);
-  }
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error(`Timeout requête Guesty (${path})`));
+    });
+    req.on('error', (e) => {
+      const detail = e.code ? ` [${e.code}]` : '';
+      reject(new Error(e.message + detail));
+    });
+    req.end();
+  });
 }
 
 /**
@@ -134,7 +157,7 @@ async function getUpcomingReservations() {
   return paginateReservations({
     sort:    'checkIn',
     filters,
-    fields:  '_id status listingId checkIn checkOut integration confirmationCode guest nightsCount',
+    fields:  '_id status listingId checkIn checkOut integration confirmationCode guest nightsCount createdAt',
   });
 }
 
@@ -148,7 +171,7 @@ async function getReservationsByListing(listingId) {
   const results = await paginateReservations({
     sort:    '-checkIn',
     filters,
-    fields:  '_id status listingId checkIn checkOut integration confirmationCode guest nightsCount',
+    fields:  '_id status listingId checkIn checkOut integration confirmationCode guest nightsCount createdAt',
   });
   if (results.length) {
     console.log(`[RESAS] listing ${listingId} → ${results.length} réservations`);
@@ -164,6 +187,7 @@ async function getReservationsByListing(listingId) {
 async function getReservation(id) {
   const fields = [
     'money.hostPayout',
+    'createdAt',
     'guestStay.createdAt',
     'guest.fullName',
     'money.payments.fees.amount',

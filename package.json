@@ -10,6 +10,7 @@
   "dependencies": {
     "dotenv": "^17.3.1",
     "express": "^4.18.2",
-    "node-sqlite3-wasm": "^0.8.20"
+    "node-sqlite3-wasm": "^0.8.20",
+    "undici": "^7.24.5"
   }
 }

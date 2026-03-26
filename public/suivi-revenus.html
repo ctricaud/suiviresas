@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revenus — Suivi Réservations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bebas+Neue&display=swap');
+
+  :root {
+    --bg:      #000000;
+    --bg2:     #0d0d0d;
+    --gold:    #f0c040;
+    --white:   #ffffff;
+    --grey:    #999999;
+    --border:  rgba(240,192,64,0.30);
+    --row-alt: rgba(255,255,255,0.04);
+    --row-hov: rgba(240,192,64,0.10);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--white); font-family:'Atkinson Hyperlegible',Arial,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ── HEADER ── */
+  header { width:100%; padding:20px 40px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:20px; }
+  .back-btn { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.3rem; letter-spacing:3px; color:var(--gold); text-decoration:none; border:2px solid var(--border); padding:10px 24px; border-radius:6px; transition:background 0.15s,border-color 0.15s; }
+  .back-btn:hover { border-color:var(--gold); background:rgba(240,192,64,0.10); }
+  .header-app { font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:3px; color:var(--grey); }
+
+  /* ── MAIN ── */
+  main { flex:1; padding:40px; max-width:1600px; margin:0 auto; width:100%; }
+  .page-title { font-family:'Bebas Neue',Impact,sans-serif; font-size:clamp(3rem,5vw,4.5rem); letter-spacing:6px; color:var(--gold); line-height:1; margin-bottom:6px; }
+  .page-subtitle { font-size:1.1rem; color:var(--grey); margin-bottom:36px; }
+
+  /* ── FILTRES ── */
+  .filters { display:flex; gap:16px; margin-bottom:32px; flex-wrap:wrap; align-items:center; }
+  .sel-filter {
+    background:var(--bg2); border:2px solid var(--border); color:var(--white);
+    font-family:'Atkinson Hyperlegible',Arial,sans-serif; font-size:1.2rem;
+    padding:12px 20px; border-radius:8px; outline:none; cursor:pointer;
+    transition:border-color 0.15s; min-width:240px;
+  }
+  .sel-filter:focus { border-color:var(--gold); }
+  .sel-filter option { background:#000; color:#fff; }
+  .reset-btn {
+    background:transparent; border:2px solid var(--border); color:var(--grey);
+    font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:2px;
+    padding:12px 24px; border-radius:8px; cursor:pointer; transition:border-color 0.15s,color 0.15s;
+  }
+  .reset-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* ── LÉGENDE ── */
+  .legend { display:flex; gap:24px; margin-bottom:20px; flex-wrap:wrap; align-items:center; font-size:1rem; }
+  .legend-item { display:flex; align-items:center; gap:8px; color:var(--grey); }
+  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .l-occ  { background:var(--grey); }
+  .l-price { background:var(--white); }
+  .l-rev  { background:var(--gold); }
+
+  /* ── TABLEAU CENTRÉ ── */
+  .table-outer { display:flex; justify-content:center; }
+  .table-wrap { border:2px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg2); display:inline-block; }
+  table { border-collapse:collapse; }
+
+  /* En-tête */
+  thead th {
+    background:rgba(240,192,64,0.08); color:var(--gold);
+    font-family:'Bebas Neue',Impact,sans-serif; font-size:1.1rem; letter-spacing:2px;
+    padding:14px 32px; text-align:right; border-bottom:2px solid var(--border);
+    white-space:nowrap;
+  }
+  thead th:first-child { text-align:left; min-width:120px; }
+
+  /* Corps */
+  tbody tr { border-bottom:1px solid rgba(255,255,255,0.07); transition:background 0.12s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:nth-child(even) { background:var(--row-alt); }
+  tbody tr:hover { background:var(--row-hov); }
+
+  tbody td {
+    padding:12px 32px; text-align:right; white-space:nowrap; vertical-align:middle;
+  }
+  tbody td:first-child {
+    text-align:left; color:var(--grey); font-weight:700; font-size:1rem;
+    text-transform:uppercase; letter-spacing:1px;
+  }
+
+  /* Cellule multi-lignes */
+  .cell { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+  .cell-occ   { font-style:italic; font-size:0.9rem; color:var(--grey); }
+  .cell-price { font-size:0.95rem; color:var(--white); }
+  .cell-rev   { font-weight:700; font-size:1.1rem; color:var(--white); }
+  .cell-empty { font-size:1rem; color:rgba(255,255,255,0.18); }
+
+  /* Pied de tableau (total) */
+  tfoot tr { border-top:2px solid var(--border); }
+  tfoot td {
+    padding:14px 32px; text-align:right; white-space:nowrap; vertical-align:middle;
+  }
+  tfoot td:first-child {
+    text-align:left; font-family:'Bebas Neue',Impact,sans-serif;
+    font-size:1.2rem; letter-spacing:2px; color:var(--gold);
+  }
+  tfoot .cell-occ   { color:rgba(240,192,64,0.6); }
+  tfoot .cell-price { color:rgba(240,192,64,0.8); }
+  tfoot .cell-rev   { color:var(--gold); font-size:1.2rem; }
+
+  /* ── ÉTATS ── */
+  .empty-state { text-align:center; padding:60px 20px; }
+  .empty-state-icon { font-size:3rem; margin-bottom:16px; opacity:0.4; }
+  .empty-state-msg { font-size:1.2rem; color:var(--grey); }
+  .loading { text-align:center; padding:60px 20px; }
+  .spinner { display:inline-block; width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="back-btn">← ACCUEIL</a>
+  <span class="header-app">SUIVI RÉSERVATIONS</span>
+</header>
+
+<main>
+  <div class="page-title">REVENUS</div>
+  <div class="page-subtitle">Versements propriétaires ventilés par mois de séjour · Réservations confirmées uniquement</div>
+
+  <div class="filters">
+    <select id="sel-owner" class="sel-filter">
+      <option value="">Tous les propriétaires</option>
+    </select>
+    <select id="sel-listing" class="sel-filter">
+      <option value="">Toutes les propriétés</option>
+    </select>
+    <button class="reset-btn" onclick="resetFilters()">RÉINITIALISER</button>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot l-occ"></div><em>Taux de remplissage</em></div>
+    <div class="legend-item"><div class="legend-dot l-price"></div>Prix moyen / nuit</div>
+    <div class="legend-item"><div class="legend-dot l-rev"></div><strong>Versement propriétaire</strong></div>
+  </div>
+
+  <div class="table-outer">
+    <div class="table-wrap">
+      <div class="loading" id="loading"><div class="spinner"></div></div>
+      <table id="pivot-table" style="display:none">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot id="tfoot"></tfoot>
+      </table>
+      <div class="empty-state" id="empty-state" style="display:none">
+        <div class="empty-state-icon">📭</div>
+        <div class="empty-state-msg">Aucune réservation confirmée avec versement calculé pour cette sélection.</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const MONTHS   = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const LS_KEY   = 'suivi-revenus-filters';
+
+const selOwner   = document.getElementById('sel-owner');
+const selListing = document.getElementById('sel-listing');
+
+// ── Persistance filtres ──────────────────────────────────────
+function saveFilters() {
+  localStorage.setItem(LS_KEY, JSON.stringify({ owner: selOwner.value, listing: selListing.value }));
+}
+function loadSavedFilters() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
+}
+function resetFilters() {
+  selOwner.value = ''; selListing.value = '';
+  saveFilters(); updateListingOptions(); fetchAndRender();
+}
+
+// ── Dropdowns ────────────────────────────────────────────────
+let allListings = [];
+
+async function loadDropdowns() {
+  const [owners, listings] = await Promise.all([
+    fetch('/api/owners').then(r => r.json()),
+    fetch('/api/listings').then(r => r.json())
+  ]);
+  allListings = listings;
+  const saved = loadSavedFilters();
+  for (const o of owners) {
+    const opt = document.createElement('option');
+    opt.value = o.id; opt.textContent = o.nom;
+    selOwner.appendChild(opt);
+  }
+  if (saved.owner) selOwner.value = saved.owner;
+  updateListingOptions(saved.listing);
+}
+
+function updateListingOptions(selectValue) {
+  const ownerId  = selOwner.value;
+  const filtered = ownerId ? allListings.filter(l => l.owner_id === ownerId) : allListings;
+  selListing.innerHTML = '<option value="">Toutes les propriétés</option>';
+  for (const l of filtered) {
+    const opt = document.createElement('option');
+    opt.value = l.id; opt.textContent = l.nom;
+    selListing.appendChild(opt);
+  }
+  if (selectValue && filtered.find(l => l.id === selectValue)) selListing.value = selectValue;
+}
+
+selOwner.addEventListener('change',   () => { updateListingOptions(); saveFilters(); fetchAndRender(); });
+selListing.addEventListener('change', () => { saveFilters(); fetchAndRender(); });
+
+// ── Utilitaires ──────────────────────────────────────────────
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate(); // month est 1-indexé ici
+}
+
+function fmtCurrency(val) {
+  return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(val);
+}
+
+function makeCell(nights, revenue, listingCount, year, month) {
+  const div = document.createElement('div');
+  div.className = 'cell';
+  if (!nights || !revenue) {
+    const s = document.createElement('span');
+    s.className = 'cell-empty'; s.textContent = '—';
+    div.appendChild(s); return div;
+  }
+  const days = daysInMonth(year, month);
+  const occ  = Math.round(nights / (listingCount * days) * 100);
+  const avg  = Math.round(revenue / nights);
+
+  const sOcc = document.createElement('span');
+  sOcc.className = 'cell-occ'; sOcc.textContent = occ + ' %';
+
+  const sPrice = document.createElement('span');
+  sPrice.className = 'cell-price'; sPrice.textContent = fmtCurrency(avg) + '/nuit';
+
+  const sRev = document.createElement('span');
+  sRev.className = 'cell-rev'; sRev.textContent = fmtCurrency(revenue);
+
+  div.append(sOcc, sPrice, sRev);
+  return div;
+}
+
+function makeTotalCell(nights, revenue, listingCount, year) {
+  const div = document.createElement('div');
+  div.className = 'cell';
+  if (!nights || !revenue) {
+    const s = document.createElement('span');
+    s.className = 'cell-empty'; s.textContent = '—';
+    div.appendChild(s); return div;
+  }
+  const totalDays = Array.from({length:12}, (_, i) => daysInMonth(year, i + 1)).reduce((a,b) => a + b, 0);
+  const occ  = Math.round(nights / (listingCount * totalDays) * 100);
+  const avg  = Math.round(revenue / nights);
+
+  const sOcc = document.createElement('span');
+  sOcc.className = 'cell-occ'; sOcc.textContent = occ + ' %';
+
+  const sPrice = document.createElement('span');
+  sPrice.className = 'cell-price'; sPrice.textContent = fmtCurrency(avg) + '/nuit';
+
+  const sRev = document.createElement('span');
+  sRev.className = 'cell-rev'; sRev.textContent = fmtCurrency(revenue);
+
+  div.append(sOcc, sPrice, sRev);
+  return div;
+}
+
+// ── Fetch & render ───────────────────────────────────────────
+async function fetchAndRender() {
+  document.getElementById('loading').style.display      = 'block';
+  document.getElementById('pivot-table').style.display  = 'none';
+  document.getElementById('empty-state').style.display  = 'none';
+
+  const params = new URLSearchParams();
+  if (selOwner.value)   params.set('owner_id',   selOwner.value);
+  if (selListing.value) params.set('listing_id', selListing.value);
+
+  const { listing_count, data } = await fetch('/api/analyse/revenus?' + params).then(r => r.json());
+
+  document.getElementById('loading').style.display = 'none';
+
+  if (!data.length) {
+    document.getElementById('empty-state').style.display = 'block';
+    return;
+  }
+
+  // Structure pivot : data[year][month] = { nights, revenue }
+  const yearsSet = new Set(data.map(r => r.year));
+  const years    = [...yearsSet].sort((a, b) => a - b);
+
+  const pivot = {};
+  for (const r of data) {
+    if (!pivot[r.year]) pivot[r.year] = {};
+    pivot[r.year][r.month] = r;
+  }
+
+  // ── Thead ──
+  const thead = document.getElementById('thead');
+  thead.innerHTML = '';
+  const trH = document.createElement('tr');
+  const thM = document.createElement('th'); thM.textContent = 'MOIS'; trH.appendChild(thM);
+  for (const y of years) {
+    const th = document.createElement('th'); th.textContent = y; trH.appendChild(th);
+  }
+  thead.appendChild(trH);
+
+  // ── Tbody ──
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  for (let m = 1; m <= 12; m++) {
+    const tr = document.createElement('tr');
+    const tdLabel = document.createElement('td');
+    tdLabel.textContent = MONTHS[m - 1];
+    tr.appendChild(tdLabel);
+    for (const y of years) {
+      const td = document.createElement('td');
+      const entry = pivot[y]?.[m];
+      td.appendChild(makeCell(entry?.nights, entry?.revenue, listing_count, y, m));
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+
+  // ── Tfoot (totaux annuels) ──
+  const tfoot = document.getElementById('tfoot');
+  tfoot.innerHTML = '';
+  const trF = document.createElement('tr');
+  const tdL = document.createElement('td'); tdL.textContent = 'TOTAL'; trF.appendChild(tdL);
+  for (const y of years) {
+    const td = document.createElement('td');
+    const entries = Object.values(pivot[y] || {});
+    const totNights  = entries.reduce((s, e) => s + e.nights,  0);
+    const totRevenue = entries.reduce((s, e) => s + e.revenue, 0);
+    td.appendChild(makeTotalCell(totNights, totRevenue, listing_count, y));
+    trF.appendChild(td);
+  }
+  tfoot.appendChild(trF);
+
+  document.getElementById('pivot-table').style.display = '';
+}
+
+// ── Init ─────────────────────────────────────────────────────
+(async () => {
+  await loadDropdowns();
+  await fetchAndRender();
+})();
+</script>
+</body>
+</html>
